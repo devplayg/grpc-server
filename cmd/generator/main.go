@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/devplayg/grpc-server/proto"
 	"github.com/golang/protobuf/ptypes/timestamp"
@@ -33,7 +34,7 @@ func main() {
 		spew.Dump(event)
 		_, err := clientApi.Send(context.Background(), event)
 		if err != nil {
-			panic(err)
+			fmt.Printf("[error] %s\n", err.Error())
 		}
 		time.Sleep(100 * time.Millisecond)
 

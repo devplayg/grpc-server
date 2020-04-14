@@ -11,8 +11,9 @@ import (
 
 type Receiver struct {
 	hippo.Launcher
-	config     *grpc_server.Config
-	gRpcServer *grpc.Server
+	config       *grpc_server.Config
+	grpcReceiver *grpc.Server
+	//grpcSender   proto.EventServiceClient
 }
 
 func NewReceiver() *Receiver {
@@ -25,9 +26,14 @@ func (r *Receiver) Start() error {
 	}
 	r.Log.Infof("%s has been started", r.Engine.Config.Name)
 
+	grpcSender, err := r.startGRPCSender()
+	if err != nil {
+		return fmt.Errorf("failed to start gRPC sender")
+	}
+
 	ch := make(chan bool)
 	go func() {
-		if err := r.startGRPCServer(); err != nil {
+		if err := r.startGRPCReceiver(grpcSender); err != nil {
 			r.Log.Errorf("failed to start gRPC server: %w", err)
 		}
 		r.Log.Debug("gRpcServer has been stopped")
@@ -37,7 +43,7 @@ func (r *Receiver) Start() error {
 	<-r.Ctx.Done()
 
 	// Stop gRPC server
-	r.gRpcServer.Stop()
+	r.grpcReceiver.Stop()
 
 	// Waiting for gRPC server to shut down
 	<-ch
@@ -49,22 +55,47 @@ func (r *Receiver) Stop() error {
 	return nil
 }
 
-func (r *Receiver) startGRPCServer() error {
-	ln, err := net.Listen("tcp", r.config.App.Receiver.BindAddress)
+func (r *Receiver) startGRPCReceiver(grpcSender proto.EventServiceClient) error {
+	ln, err := net.Listen("tcp", r.config.App.Receiver.Address)
 	if err != nil {
 		return err
 	}
 
 	// Create gRPC server
-	r.gRpcServer = grpc.NewServer()
+	r.grpcReceiver = grpc.NewServer()
 
 	// Register server to gRPC server
-	proto.RegisterEventServiceServer(r.gRpcServer, &eventReceiver{})
+	proto.RegisterEventServiceServer(r.grpcReceiver, &eventReceiver{grpcSender})
 
 	// Run
 	r.Log.Debug("gRpcServer has been started")
-	if err := r.gRpcServer.Serve(ln); err != nil {
+	if err := r.grpcReceiver.Serve(ln); err != nil {
 		return err
 	}
 	return nil
+}
+
+func (r *Receiver) startGRPCSender() (proto.EventServiceClient, error) {
+	conn, err := grpc.Dial(r.config.App.Receiver.Classifier.Address, grpc.WithInsecure())
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+
+	// Create client API for service
+	grpcSender := proto.NewEventServiceClient(conn)
+
+	// gRPC remote procedure call
+	//for {
+	//	event := generateEvent()
+	//	spew.Dump(event)
+	//	_, err := clientApi.Send(context.Background(), event)
+	//	if err != nil {
+	//		panic(err)
+	//	}
+	//	time.Sleep(100 * time.Millisecond)
+	//
+	//}
+
+	return grpcSender, nil
 }

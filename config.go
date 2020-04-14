@@ -16,13 +16,16 @@ var configPaths = []string{
 type Config struct {
 	App struct {
 		Receiver struct {
-			BindAddress string `json:"bind-address"`
+			Address    string
+			Classifier struct {
+				Address string
+			}
 		}
 		Classifier struct {
-			BindAddress string `json:"bind-address"`
+			Address string
 		}
 		Notifier struct {
-			BindAddress string `json:"bind-address"`
+			Address string
 		}
 	}
 
@@ -34,18 +37,6 @@ type Config struct {
 		}
 	}
 }
-
-//type Receiver struct {
-//	BindAddress string
-//}
-//
-//type Classifier struct {
-//	BindAddress string
-//}
-//
-//type Notifier struct {
-//	BindAddress string
-//}
 
 func LoadConfig() (*Config, error) {
 	for _, path := range configPaths {
