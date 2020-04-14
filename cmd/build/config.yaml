@@ -1,0 +1,10 @@
+app:
+  receiver:
+    bind-address: :8801
+  classifier:
+    bind-address: :8802
+  notifier:
+    bind-address: :8803
+  calculator:
+    interval: 3000
+  storage:

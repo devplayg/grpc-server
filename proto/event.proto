@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+package proto;
+
+import "google/protobuf/timestamp.proto";
+
+service EventService {
+    rpc Send (Event) returns (Response) {
+    }
+    rpc SendHeader (EventHeader) returns (Response) {
+    }
+}
+
+message Event {
+    EventHeader header = 1;
+    EventBody body = 2;
+}
+
+message EventBody {
+    repeated File files = 1;
+}
+
+message EventHeader {
+    int32 version = 1;
+    google.protobuf.Timestamp date = 2;
+    enum RiskLevel {
+        UNKNOWN = 0;
+        LOW = 1;
+        GUARDED = 2;
+        ELEVATED = 3;
+        HIGH = 4;
+        SEVERE = 5;
+    }
+    RiskLevel riskLevel = 3;
+}
+
+//message Events {
+//    repeated Event events = 1;
+//}
+
+message File {
+    int32 content_type = 1; // image, text or something
+    google.protobuf.Timestamp time = 2;
+    int32 category = 3;
+    bytes data = 4;
+}
+
+message Response {
+    string error = 1;
+}
