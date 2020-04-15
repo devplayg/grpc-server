@@ -23,7 +23,7 @@ func (c *Classifier) Start() error {
 	if err := c.init(); err != nil {
 		return fmt.Errorf("failed to initialize %s; %w", c.Engine.Config.Name, err)
 	}
-	c.Log.Infof("%s has been started", c.Engine.Config.Name)
+	//c.Log.Infof("%s has been started", c.Engine.Config.Name)
 
 	ch := make(chan bool)
 	go func() {

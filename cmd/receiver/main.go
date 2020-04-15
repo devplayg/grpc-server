@@ -16,7 +16,7 @@ const (
 
 var (
 	fs      = pflag.NewFlagSet(appName, pflag.ContinueOnError)
-	debug   = fs.Bool("debug", false, "Debug")
+	debug   = fs.Bool("debug", true, "Debug")
 	verbose = fs.BoolP("verbose", "v", false, "Verbose")
 	version = fs.Bool("version", false, "Version")
 )
