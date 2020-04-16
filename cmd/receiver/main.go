@@ -47,3 +47,13 @@ func init() {
 		os.Exit(0)
 	}
 }
+
+//
+//
+//func Path(rel string) string {
+//	if filepath.IsAbs(rel) {
+//		return rel
+//	}
+//
+//	return filepath.Join(basepath, rel)
+//}

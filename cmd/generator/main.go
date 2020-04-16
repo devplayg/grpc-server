@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/devplayg/grpc-server/proto"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"google.golang.org/grpc"
@@ -29,16 +28,20 @@ func main() {
 	clientApi := proto.NewEventServiceClient(conn)
 
 	// gRPC remote procedure call
-	for {
-		event := generateEvent()
-		spew.Dump(event)
-		_, err := clientApi.Send(context.Background(), event)
-		if err != nil {
-			fmt.Printf("[error] %s\n", err.Error())
-		}
-		time.Sleep(100 * time.Millisecond)
-
+	//for {
+	event := generateEvent()
+	// spew.Dump(event)
+	res, err := clientApi.Send(context.Background(), event)
+	if err != nil {
+		fmt.Printf("[error] %s\n", err.Error())
 	}
+	if res != nil {
+		if len(res.Error) > 0 {
+			fmt.Printf("[error] %s\n", res.Error)
+		}
+	}
+	time.Sleep(5000 * time.Millisecond)
+	//}
 }
 
 func generateEvent() *proto.Event {
