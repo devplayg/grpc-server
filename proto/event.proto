@@ -46,5 +46,4 @@ message File {
 }
 
 message Response {
-    string error = 1;
 }

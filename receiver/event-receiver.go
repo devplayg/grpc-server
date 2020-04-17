@@ -2,9 +2,8 @@ package receiver
 
 import (
 	"context"
-	"fmt"
 	"github.com/devplayg/grpc-server/proto"
-	"google.golang.org/grpc/peer"
+	"github.com/sirupsen/logrus"
 )
 
 type eventReceiver struct {
@@ -12,12 +11,11 @@ type eventReceiver struct {
 }
 
 func (r *eventReceiver) Send(ctx context.Context, req *proto.Event) (*proto.Response, error) {
-	p, ok := peer.FromContext(ctx)
-	if ok {
-		fmt.Printf("requested by %s\n", p.Addr.String())
-	}
+	//p, _ := peer.FromContext(ctx)
+	//if ok {
+	//}
+	//fmt.Printf("[requested by %s] risk-level=%d\n", p.Addr.String(), req.Header.RiskLevel)
 	//request.Frontendip = p.Addr.String()
-
 	//spew.Dump(req)
 	//res, err := r.grpcSender.Send(context.Background(), req)
 	//if err != nil {
@@ -31,13 +29,37 @@ func (r *eventReceiver) Send(ctx context.Context, req *proto.Event) (*proto.Resp
 	//		Error: "#2:"+err.Error(),
 	//	}, nil
 	//}
-	return &proto.Response{
-		Error: "",
-	}, nil
+	//fmt.Printf("[requested by %s] risk-level=%d\n", p.Addr.String(), req.Header.RiskLevel)
+	return &proto.Response{}, nil
 }
 
 func (r *eventReceiver) SendHeader(ctx context.Context, req *proto.EventHeader) (*proto.Response, error) {
-	return &proto.Response{
-		Error: "",
-	}, nil
+	return &proto.Response{}, nil
+}
+
+type output struct {
+	grpcSender proto.EventServiceClient
+	Log        *logrus.Logger
+}
+
+func (r *output) Send(ctx context.Context, req *proto.Event) (*proto.Response, error) {
+	//p, _ := peer.FromContext(ctx)
+	//r.Log.WithFields(logrus.Fields{
+	//	"riskLevel": req.Header.RiskLevel,
+	//	"client": p.Addr.String(),
+	//}).Debug("called")
+	_, err := r.grpcSender.Send(context.Background(), req)
+	if err != nil {
+		// Save into file
+	}
+
+	//return nil, status.Errorf(codes.OutOfRange, "err")
+	// status.Error(codes.NotFound, "id was not found")
+	//return nil, err
+
+	return &proto.Response{}, nil
+}
+
+func (r *output) SendHeader(ctx context.Context, req *proto.EventHeader) (*proto.Response, error) {
+	return &proto.Response{}, nil
 }

@@ -15,10 +15,13 @@ const (
 )
 
 var (
-	fs      = pflag.NewFlagSet(appName, pflag.ContinueOnError)
-	debug   = fs.Bool("debug", true, "Debug")
-	verbose = fs.BoolP("verbose", "v", false, "Verbose")
-	version = fs.Bool("version", false, "Version")
+	fs       = pflag.NewFlagSet(appName, pflag.ContinueOnError)
+	debug    = fs.Bool("debug", false, "Debug")
+	verbose  = fs.BoolP("verbose", "v", false, "Verbose")
+	version  = fs.Bool("version", false, "Version")
+	insecure = fs.Bool("insecure", false, "Disable TLS")
+	certFile = fs.String("certFile", "server.crt", "SSL Certificate file")
+	keyFile  = fs.String("keyFile", "server.key", "SSL Certificate key file")
 )
 
 func main() {
@@ -27,7 +30,10 @@ func main() {
 		Description: appDescription,
 		Version:     appVersion,
 		Debug:       *debug,
-		// LogDir:      ".",
+		CertFile:    *certFile,
+		KeyFile:     *keyFile,
+		Insecure:    *insecure,
+		LogDir:      ".",
 	}
 	if *verbose {
 		config.LogDir = ""

@@ -56,7 +56,14 @@ func (c *Classifier) startGRPCServer() error {
 	}
 
 	// Create gRPC server
-	c.gRpcServer = grpc.NewServer()
+	c.gRpcServer = grpc.NewServer(
+		grpc.UnaryInterceptor(grpc_server.UnaryInterceptor),
+		grpc.StatsHandler(&grpc_server.ConnStatsHandler{
+			From: "receiver",
+			To:   "classifier",
+			Log:  c.Log,
+		}),
+	)
 
 	// Register server to gRPC server
 	proto.RegisterEventServiceServer(c.gRpcServer, &eventReceiver{})

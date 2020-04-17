@@ -15,17 +15,26 @@ var configPaths = []string{
 
 type Config struct {
 	App struct {
+
+		// Receiver
 		Receiver struct {
+			Insecure   bool
 			Address    string
 			Classifier struct {
 				Address string
 			}
 		}
+
+		// Classifier
 		Classifier struct {
-			Address string
+			Address  string
+			Insecure bool
 		}
+
+		// Notifier
 		Notifier struct {
-			Address string
+			Address  string
+			Insecure bool
 		}
 	}
 

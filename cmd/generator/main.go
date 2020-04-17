@@ -2,11 +2,15 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"github.com/devplayg/grpc-server/proto"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/status"
 	"math/rand"
+
 	"time"
 )
 
@@ -17,30 +21,38 @@ func init() {
 }
 
 func main() {
+	config := &tls.Config{
+		InsecureSkipVerify: true,
+	}
+	opts := []grpc.DialOption{
+		grpc.WithTransportCredentials(credentials.NewTLS(config)),
+	}
+
 	// Create connection
-	conn, err := grpc.Dial(addr, grpc.WithInsecure())
+	conn, err := grpc.Dial(addr, opts...)
 	if err != nil {
 		panic(err)
 	}
-	defer conn.Close()
 
 	// Create client API for service
 	clientApi := proto.NewEventServiceClient(conn)
 
 	// gRPC remote procedure call
-	//for {
 	event := generateEvent()
-	// spew.Dump(event)
-	res, err := clientApi.Send(context.Background(), event)
+
+	_, err = clientApi.Send(context.Background(), event)
 	if err != nil {
-		fmt.Printf("[error] %s\n", err.Error())
-	}
-	if res != nil {
-		if len(res.Error) > 0 {
-			fmt.Printf("[error] %s\n", res.Error)
+		statusErr, ok := status.FromError(err)
+		if !ok {
+			panic(err)
 		}
+		fmt.Printf("[error] %v\n", statusErr.Message())
+		fmt.Printf("[error] %v\n", statusErr.Code())
+		fmt.Printf("[error] %v\n", statusErr.Details())
+		fmt.Printf("[error] %v\n", statusErr.Err())
 	}
-	time.Sleep(5000 * time.Millisecond)
+
+	time.Sleep(3000 * time.Millisecond)
 	//}
 }
 
