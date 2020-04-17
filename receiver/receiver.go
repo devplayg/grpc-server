@@ -81,6 +81,14 @@ func (r *Receiver) startGrpcServer(grpcSender proto.EventServiceClient) error {
 	// Set options
 	opts := make([]grpc.ServerOption, 0)
 
+	// Set statsHandler
+
+	opts = append(opts, grpc.StatsHandler(&grpc_server.ConnStatsHandler{
+		From: "agent",
+		To:   fmt.Sprintf("%s(%s)", r.Engine.Config.Name, r.config.App.Receiver.Address),
+		Log:  r.Log,
+	}))
+
 	// Set logging
 	if r.Engine.Config.Debug {
 		logrusEntry := logrus.NewEntry(r.Log)
@@ -90,11 +98,6 @@ func (r *Receiver) startGrpcServer(grpcSender proto.EventServiceClient) error {
 			),
 			grpc_logrus.UnaryServerInterceptor(logrusEntry),
 		))
-		opts = append(opts, grpc.StatsHandler(&grpc_server.ConnStatsHandler{
-			From: "agent",
-			To:   fmt.Sprintf("%s(%s)", r.Engine.Config.Name, r.config.App.Receiver.Address),
-			Log:  r.Log,
-		}))
 	}
 
 	// Set security
