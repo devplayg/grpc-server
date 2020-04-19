@@ -2,33 +2,46 @@ package receiver
 
 import (
 	"context"
+	"fmt"
 	"github.com/devplayg/grpc-server/proto"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc/connectivity"
 )
 
 type grpcService struct {
 	classifier *classifier
 	log        *logrus.Logger
+	ch         chan<- *proto.Event
 }
 
 func (s *grpcService) Send(ctx context.Context, req *proto.Event) (*proto.Response, error) {
-	//p, _ := peer.FromContext(ctx)
+	// p, _ := peer.FromContext(ctx)
 	s.log.WithFields(logrus.Fields{
 		"riskLevel": req.Header.RiskLevel,
 		// "client": p.Addr.String(),
 	}).Debug("received")
-	_, err := s.classifier.clientApi.Send(context.Background(), req)
-	if err != nil {
-		// Save into file
-	}
 
-	//return nil, status.Errorf(codes.OutOfRange, "err")
+	go func() {
+		if err := s.relayToClassifier(req); err != nil {
+			s.ch <- req
+		}
+	}()
+
+	// return nil, status.Errorf(codes.OutOfRange, "err")
 	// status.Error(codes.NotFound, "id was not found")
-	//return nil, err
+	// return nil, err
 
 	return &proto.Response{}, nil
 }
 
 func (s *grpcService) SendHeader(ctx context.Context, req *proto.EventHeader) (*proto.Response, error) {
 	return &proto.Response{}, nil
+}
+
+func (s *grpcService) relayToClassifier(req *proto.Event) error {
+	if s.classifier.conn.GetState() != connectivity.Ready {
+		return fmt.Errorf("connection is not ready")
+	}
+	_, err := s.classifier.clientApi.Send(context.Background(), req)
+	return err
 }

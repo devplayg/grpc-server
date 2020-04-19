@@ -18,10 +18,9 @@ type classifier struct {
 	clientApi  proto.EventServiceClient
 }
 
-func newClassifier(addr string, log *logrus.Logger) *classifier {
+func newClassifier(addr string) *classifier {
 	return &classifier{
 		address: addr,
-		log:     log,
 	}
 }
 
@@ -38,7 +37,7 @@ func (c *classifier) connect() error {
 		}),
 		grpc.WithStatsHandler(&grpc_server.ConnStatsHandler{
 			To:  "classifier",
-			Log: c.log,
+			Log: log,
 		}),
 	}
 

@@ -11,6 +11,7 @@ import (
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/status"
 	"math/rand"
+	"os"
 
 	"time"
 )
@@ -19,6 +20,7 @@ const addr = "localhost:8801"
 
 func init() {
 	rand.Seed(time.Now().UnixNano())
+	_ = fs.Parse(os.Args[1:])
 }
 
 func main() {
@@ -45,9 +47,9 @@ func main() {
 	clientApi := proto.NewEventServiceClient(conn)
 
 	// gRPC remote procedure call
-	event := generateEvent()
 
 	for {
+		event := generateEvent()
 		_, err = clientApi.Send(context.Background(), event)
 		if err != nil {
 			statusErr, ok := status.FromError(err)

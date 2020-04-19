@@ -13,7 +13,7 @@ import (
 	"net"
 )
 
-func (r *Receiver) startGrpcServer() error {
+func (r *Receiver) startGrpcServer(ch chan<- *proto.Event) error {
 	ln, err := net.Listen("tcp", r.config.App.Receiver.Address)
 	if err != nil {
 		return err
@@ -24,7 +24,7 @@ func (r *Receiver) startGrpcServer() error {
 	r.gRpcServer = grpc.NewServer(opts...)
 
 	// Register server to gRPC server
-	proto.RegisterEventServiceServer(r.gRpcServer, &grpcService{classifier: r.classifier, log: r.Log})
+	proto.RegisterEventServiceServer(r.gRpcServer, &grpcService{ch: ch, classifier: r.classifier, log: r.Log})
 
 	// Run
 	if err := r.gRpcServer.Serve(ln); err != nil {
