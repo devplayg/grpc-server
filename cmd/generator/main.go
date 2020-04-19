@@ -8,6 +8,7 @@ import (
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/status"
 	"math/rand"
 
@@ -16,16 +17,31 @@ import (
 
 const addr = "localhost:8801"
 
+var kacp = keepalive.ClientParameters{
+	// Time:                10 * time.Second, // send pings every 10 seconds if there is no activity
+	// Timeout:             time.Second,      // wait 1 second for ping ack before considering the connection dead
+	// PermitWithoutStream: true,             // send pings even without active streams
+}
+
 func init() {
 	rand.Seed(time.Now().UnixNano())
 }
+
+// var kacp = keepalive.ClientParameters{
+// 	Time:                10 * time.Second, // send pings every 10 seconds if there is no activity
+// 	Timeout:             time.Second,      // wait 1 second for ping ack before considering the connection dead
+// 	PermitWithoutStream: true,             // send pings even without active streams
+// }
+//
 
 func main() {
 	config := &tls.Config{
 		InsecureSkipVerify: true,
 	}
 	opts := []grpc.DialOption{
+		// grpc.WithBlock(),
 		grpc.WithTransportCredentials(credentials.NewTLS(config)),
+		// grpc.WithKeepaliveParams(kacp),
 	}
 
 	// Create connection
@@ -40,20 +56,25 @@ func main() {
 	// gRPC remote procedure call
 	event := generateEvent()
 
-	_, err = clientApi.Send(context.Background(), event)
-	if err != nil {
-		statusErr, ok := status.FromError(err)
-		if !ok {
-			panic(err)
+	for {
+		_, err = clientApi.Send(context.Background(), event)
+		if err != nil {
+			statusErr, ok := status.FromError(err)
+			if !ok {
+				panic(err)
+			}
+			fmt.Printf("[error] %v\n", statusErr.Message())
+			fmt.Printf("[error] %v\n", statusErr.Code())
+			fmt.Printf("[error] %v\n", statusErr.Details())
+			fmt.Printf("[error] %v\n", statusErr.Err())
 		}
-		fmt.Printf("[error] %v\n", statusErr.Message())
-		fmt.Printf("[error] %v\n", statusErr.Code())
-		fmt.Printf("[error] %v\n", statusErr.Details())
-		fmt.Printf("[error] %v\n", statusErr.Err())
+
+		time.Sleep(60 * time.Second)
 	}
 
-	time.Sleep(3000 * time.Millisecond)
+	//time.Sleep(3000 * time.Millisecond)
 	//}
+	//select {}
 }
 
 func generateEvent() *proto.Event {

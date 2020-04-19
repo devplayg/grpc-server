@@ -10,6 +10,8 @@ import (
 	"time"
 )
 
+const ctxCustomKey = "addr"
+
 type ConnStatsHandler struct {
 	From string
 	To   string
@@ -17,7 +19,7 @@ type ConnStatsHandler struct {
 }
 
 func (c *ConnStatsHandler) TagConn(ctx context.Context, info *stats.ConnTagInfo) context.Context {
-	ctx = context.WithValue(ctx, "remoteaddr", info.RemoteAddr.String())
+	ctx = context.WithValue(ctx, ctxCustomKey, info.RemoteAddr.String())
 	//fmt.Printf("TagConn\tinfo.RemoteAddr=%v\n", info.RemoteAddr)
 	return ctx
 }
@@ -30,24 +32,36 @@ func (c *ConnStatsHandler) HandleRPC(ctx context.Context, rpcStats stats.RPCStat
 }
 func (c *ConnStatsHandler) HandleConn(ctx context.Context, connStats stats.ConnStats) {
 	if reflect.TypeOf(connStats).String() == "*stats.ConnBegin" {
-		//fmt.Printf("[%s-%s] connected\n", s.Name, getCtxValue(ctx))
+		if len(c.From) > 0 {
+			c.Log.WithFields(logrus.Fields{
+				"from": c.From,
+				"addr": getCtxValue(ctx),
+			}).Info("connected")
+			return
+		}
 		c.Log.WithFields(logrus.Fields{
-			"from": c.From,
 			"to":   c.To,
 			"addr": getCtxValue(ctx),
 		}).Info("connected")
 		return
 	}
 	//fmt.Printf("[%s-%s] disconnected\n", s.Name, getCtxValue(ctx))
+	if len(c.From) > 0 {
+		c.Log.WithFields(logrus.Fields{
+			"from": c.From,
+			"addr": getCtxValue(ctx),
+		}).Info("disconnected")
+		return
+	}
 	c.Log.WithFields(logrus.Fields{
-		"from": c.From,
 		"to":   c.To,
 		"addr": getCtxValue(ctx),
 	}).Info("disconnected")
+	return
 }
 
 func getCtxValue(ctx context.Context) string {
-	if v := ctx.Value("remoteaddr"); v != nil {
+	if v := ctx.Value(ctxCustomKey); v != nil {
 		u, ok := v.(string)
 		if ok {
 			return u
