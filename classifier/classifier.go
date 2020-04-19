@@ -3,10 +3,8 @@ package classifier
 import (
 	"fmt"
 	grpc_server "github.com/devplayg/grpc-server"
-	"github.com/devplayg/grpc-server/proto"
 	"github.com/devplayg/hippo/v2"
 	"google.golang.org/grpc"
-	"net"
 )
 
 // Classifier receives data from receiver via gRPC framework
@@ -15,6 +13,7 @@ type Classifier struct {
 	config         *grpc_server.Config
 	gRpcServer     *grpc.Server
 	gRpcClientConn *grpc.ClientConn
+	notifier       *notifier
 }
 
 func NewClassifier() *Classifier {
@@ -27,19 +26,21 @@ func (c *Classifier) Start() error {
 	}
 
 	// Connect to classifier
-	gRpcClient, err := c.connectToNotifier()
-	if err != nil {
-		return fmt.Errorf("failed to start gRPC sender")
+	c.notifier = newNotifier(c.config.App.Classifier.Notifier.Address, c.Log)
+	if err := c.notifier.connect(); err != nil {
+		return fmt.Errorf("failed to connect to notifier: %w", err)
 	}
 
 	ch := make(chan bool)
 	go func() {
-		if err := c.startGRPCServer(); err != nil {
-			c.Log.Errorf("failed to start gRPC server: %w", err)
+		defer close(ch)
+		if err := c.startGrpcServer(); err != nil {
+			c.Log.Error(fmt.Errorf("failed to start gRPC server: %w", err))
+			return
 		}
 		c.Log.Debug("gRpcServer has been stopped")
-		close(ch)
 	}()
+	c.Log.Infof("%s has been started", c.Engine.Config.Name)
 
 	<-c.Ctx.Done()
 
@@ -52,33 +53,10 @@ func (c *Classifier) Start() error {
 }
 
 func (c *Classifier) Stop() error {
-	c.Log.Infof("%s has been stopped", c.Engine.Config.Name)
-	return nil
-}
+	defer c.Log.Infof("%s has been stopped", c.Engine.Config.Name)
 
-func (c *Classifier) startGRPCServer() error {
-	ln, err := net.Listen("tcp", c.config.App.Classifier.Address)
-	if err != nil {
-		return err
-	}
-
-	// Create gRPC server
-	c.gRpcServer = grpc.NewServer(
-		grpc.UnaryInterceptor(grpc_server.UnaryInterceptor),
-		grpc.StatsHandler(&grpc_server.ConnStatsHandler{
-			From: "receiver",
-			To:   "classifier",
-			Log:  c.Log,
-		}),
-	)
-
-	// Register server to gRPC server
-	proto.RegisterEventServiceServer(c.gRpcServer, &eventReceiver{})
-
-	// Run
-	c.Log.Debug("gRpcServer has been started")
-	if err := c.gRpcServer.Serve(ln); err != nil {
-		return err
+	if err := c.notifier.disconnect(); err != nil {
+		c.Log.Error("failed to disconnect classifier")
 	}
 	return nil
 }

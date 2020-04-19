@@ -12,7 +12,6 @@ type Receiver struct {
 	hippo.Launcher
 	config     *grpc_server.Config
 	gRpcServer *grpc.Server
-	// gRpcClientConn *grpc.ClientConn
 	classifier *classifier
 }
 
@@ -27,18 +26,19 @@ func (r *Receiver) Start() error {
 
 	r.classifier = newClassifier(r.config.App.Receiver.Classifier.Address, r.Log)
 	if err := r.classifier.connect(); err != nil {
-		r.Log.Error(err)
+		return fmt.Errorf("failed to connect to classifier: %w", err)
 	}
 
 	ch := make(chan bool)
 	go func() {
 		defer close(ch)
 		if err := r.startGrpcServer(); err != nil {
-			r.Log.Errorf("failed to start gRPC server: %w", err)
+			r.Log.Error(fmt.Errorf("failed to start gRPC server: %w", err))
 			return
 		}
 		r.Log.Info("gRpcServer has been stopped")
 	}()
+	r.Log.Infof("%s has been started", r.Engine.Config.Name)
 
 	<-r.Ctx.Done()
 

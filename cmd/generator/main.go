@@ -60,7 +60,7 @@ func main() {
 			fmt.Printf("[error] %v\n", statusErr.Err())
 		}
 
-		time.Sleep(60 * time.Second)
+		time.Sleep(5 * time.Second)
 	}
 
 	//time.Sleep(3000 * time.Millisecond)

@@ -1,4 +1,4 @@
-package receiver
+package classifier
 
 import (
 	"context"
@@ -7,17 +7,17 @@ import (
 )
 
 type grpcService struct {
-	classifier *classifier
-	log        *logrus.Logger
+	notifier *notifier
+	log      *logrus.Logger
 }
 
 func (s *grpcService) Send(ctx context.Context, req *proto.Event) (*proto.Response, error) {
 	//p, _ := peer.FromContext(ctx)
 	s.log.WithFields(logrus.Fields{
 		"riskLevel": req.Header.RiskLevel,
-		// "client": p.Addr.String(),
+		//	"client": p.Addr.String(),
 	}).Debug("received")
-	_, err := s.classifier.clientApi.Send(context.Background(), req)
+	_, err := s.notifier.clientApi.Send(context.Background(), req)
 	if err != nil {
 		// Save into file
 	}

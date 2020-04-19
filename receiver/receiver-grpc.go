@@ -13,6 +13,26 @@ import (
 	"net"
 )
 
+func (r *Receiver) startGrpcServer() error {
+	ln, err := net.Listen("tcp", r.config.App.Receiver.Address)
+	if err != nil {
+		return err
+	}
+	r.Log.Infof("gRPC server is listening on %s for requests from agent", r.config.App.Receiver.Address)
+
+	opts := r.getGrpcServerOptions()
+	r.gRpcServer = grpc.NewServer(opts...)
+
+	// Register server to gRPC server
+	proto.RegisterEventServiceServer(r.gRpcServer, &grpcService{classifier: r.classifier, log: r.Log})
+
+	// Run
+	if err := r.gRpcServer.Serve(ln); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (r *Receiver) getGrpcServerOptions() []grpc.ServerOption {
 	opts := make([]grpc.ServerOption, 0)
 
@@ -63,24 +83,4 @@ func (r *Receiver) getGrpcServerOptions() []grpc.ServerOption {
 	// grpc.UnaryInterceptor(grpc_server.UnaryInterceptor),
 
 	return opts
-}
-
-func (r *Receiver) startGrpcServer() error {
-	ln, err := net.Listen("tcp", r.config.App.Receiver.Address)
-	if err != nil {
-		return err
-	}
-	r.Log.Infof("gRPC server is listening on %s for requests from agent", r.config.App.Receiver.Address)
-
-	opts := r.getGrpcServerOptions()
-	r.gRpcServer = grpc.NewServer(opts...)
-
-	// Register server to gRPC server
-	proto.RegisterEventServiceServer(r.gRpcServer, &grpcService{classifier: r.classifier, Log: r.Log})
-
-	// Run
-	if err := r.gRpcServer.Serve(ln); err != nil {
-		return err
-	}
-	return nil
 }
