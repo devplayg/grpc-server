@@ -9,10 +9,12 @@ import (
 	"net"
 )
 
+// Classifier receives data from receiver via gRPC framework
 type Classifier struct {
 	hippo.Launcher
-	config     *grpc_server.Config
-	gRpcServer *grpc.Server
+	config         *grpc_server.Config
+	gRpcServer     *grpc.Server
+	gRpcClientConn *grpc.ClientConn
 }
 
 func NewClassifier() *Classifier {
@@ -23,7 +25,12 @@ func (c *Classifier) Start() error {
 	if err := c.init(); err != nil {
 		return fmt.Errorf("failed to initialize %s; %w", c.Engine.Config.Name, err)
 	}
-	//c.Log.Infof("%s has been started", c.Engine.Config.Name)
+
+	// Connect to classifier
+	gRpcClient, err := c.connectToNotifier()
+	if err != nil {
+		return fmt.Errorf("failed to start gRPC sender")
+	}
 
 	ch := make(chan bool)
 	go func() {

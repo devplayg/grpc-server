@@ -16,7 +16,7 @@ const (
 
 var (
 	fs       = pflag.NewFlagSet(appName, pflag.ContinueOnError)
-	debug    = fs.Bool("debug", false, "Debug")
+	debug    = fs.Bool("debug", false, "Debug") // GODEBUG=http2debug=2
 	verbose  = fs.BoolP("verbose", "v", false, "Verbose")
 	version  = fs.Bool("version", false, "Version")
 	insecure = fs.Bool("insecure", false, "Disable TLS")

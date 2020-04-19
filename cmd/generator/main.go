@@ -17,22 +17,9 @@ import (
 
 const addr = "localhost:8801"
 
-var kacp = keepalive.ClientParameters{
-	// Time:                10 * time.Second, // send pings every 10 seconds if there is no activity
-	// Timeout:             time.Second,      // wait 1 second for ping ack before considering the connection dead
-	// PermitWithoutStream: true,             // send pings even without active streams
-}
-
 func init() {
 	rand.Seed(time.Now().UnixNano())
 }
-
-// var kacp = keepalive.ClientParameters{
-// 	Time:                10 * time.Second, // send pings every 10 seconds if there is no activity
-// 	Timeout:             time.Second,      // wait 1 second for ping ack before considering the connection dead
-// 	PermitWithoutStream: true,             // send pings even without active streams
-// }
-//
 
 func main() {
 	config := &tls.Config{
@@ -41,7 +28,11 @@ func main() {
 	opts := []grpc.DialOption{
 		// grpc.WithBlock(),
 		grpc.WithTransportCredentials(credentials.NewTLS(config)),
-		// grpc.WithKeepaliveParams(kacp),
+		grpc.WithKeepaliveParams(keepalive.ClientParameters{
+			// Time:                10 * time.Second, // send pings every 10 seconds if there is no activity
+			// Timeout:             time.Second,      // wait 1 second for ping ack before considering the connection dead
+			// PermitWithoutStream: true,             // send pings even without active streams
+		}),
 	}
 
 	// Create connection

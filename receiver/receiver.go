@@ -11,8 +11,8 @@ import (
 type Receiver struct {
 	hippo.Launcher
 	config         *grpc_server.Config
-	gRpcServer     *grpc.Server     // gRPC receiver
-	gRpcClientConn *grpc.ClientConn // gRPC client for classifier
+	gRpcServer     *grpc.Server
+	gRpcClientConn *grpc.ClientConn
 }
 
 func NewReceiver() *Receiver {
@@ -20,17 +20,14 @@ func NewReceiver() *Receiver {
 }
 
 func (r *Receiver) Start() error {
-
-	// Initialize receiver
 	if err := r.init(); err != nil {
 		return fmt.Errorf("failed to initialize %s; %w", r.Engine.Config.Name, err)
 	}
-	r.Log.Debugf("%s has been initialized", r.Engine.Config.Name)
 
-	// Connect with classifier
+	// Connect to classifier
 	gRpcClient, err := r.connectToClassifier()
 	if err != nil {
-		return fmt.Errorf("failed to start gRPC sender")
+		return fmt.Errorf("failed to connect to classifier; %w", err)
 	}
 
 	ch := make(chan bool)
@@ -40,7 +37,7 @@ func (r *Receiver) Start() error {
 			r.Log.Errorf("failed to start gRPC server: %w", err)
 			return
 		}
-		r.Log.Debug("gRpcServer has been stopped")
+		r.Log.Info("gRpcServer has been stopped")
 	}()
 
 	<-r.Ctx.Done()
@@ -54,11 +51,12 @@ func (r *Receiver) Start() error {
 }
 
 func (r *Receiver) Stop() error {
-	r.Log.Infof("%s has been stopped", r.Engine.Config.Name)
-	if r.gRpcClientConn == nil {
-		r.Log.Debugf("connection status=%v", r.gRpcClientConn.GetState())
+	defer r.Log.Infof("%s has been stopped", r.Engine.Config.Name)
+
+	if r.gRpcClientConn != nil {
+		//r.Log.Debugf("connection status=%v", r.gRpcClientConn.GetState())
 		if err := r.gRpcClientConn.Close(); err != nil {
-			r.Log.Error(err)
+			return err
 		}
 	}
 

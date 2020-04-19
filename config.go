@@ -29,6 +29,9 @@ type Config struct {
 		Classifier struct {
 			Address  string
 			Insecure bool
+			Notifier struct {
+				Address string
+			}
 		}
 
 		// Notifier

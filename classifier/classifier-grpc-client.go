@@ -1,4 +1,4 @@
-package receiver
+package classifier
 
 import (
 	grpc_server "github.com/devplayg/grpc-server"
@@ -6,21 +6,21 @@ import (
 	"google.golang.org/grpc"
 )
 
-func (r *Receiver) connectToClassifier() (proto.EventServiceClient, error) {
-	classifierConn, err := grpc.Dial(
-		r.config.App.Receiver.Classifier.Address,
+func (c *Classifier) connectToNotifier() (proto.EventServiceClient, error) {
+	notifier, err := grpc.Dial(
+		c.config.App.Classifier.Notifier.Address,
 		grpc.WithInsecure(),
 		grpc.WithStatsHandler(&grpc_server.ConnStatsHandler{
 			To:  "classifier",
-			Log: r.Log,
+			Log: c.Log,
 		}),
 	)
 	if err != nil {
 		return nil, err
 	}
-	r.gRpcClientConn = classifierConn
+	c.gRpcClientConn = notifier
 
 	// Create client API for service
-	classifierApi := proto.NewEventServiceClient(r.gRpcClientConn)
+	classifierApi := proto.NewEventServiceClient(c.gRpcClientConn)
 	return classifierApi, nil
 }

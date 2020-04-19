@@ -3,11 +3,8 @@ package grpc_server
 import (
 	"context"
 	"github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/stats"
-	"log"
 	"reflect"
-	"time"
 )
 
 const ctxCustomKey = "addr"
@@ -45,7 +42,6 @@ func (c *ConnStatsHandler) HandleConn(ctx context.Context, connStats stats.ConnS
 		}).Info("connected")
 		return
 	}
-	//fmt.Printf("[%s-%s] disconnected\n", s.Name, getCtxValue(ctx))
 	if len(c.From) > 0 {
 		c.Log.WithFields(logrus.Fields{
 			"from": c.From,
@@ -70,22 +66,23 @@ func getCtxValue(ctx context.Context) string {
 	return ""
 }
 
-func UnaryInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-	start := time.Now()
-	//
-	//skip auth when ListReleases requested
-	//if info.FullMethod != "/proto.GoReleaseService/ListReleases" {
-	//	if err := authorize(ctx); err != nil {
-	//		return nil, err
-	//	}
-	//}
-	h, err := handler(ctx, req)
-
-	//logging
-	log.Printf("request - Method:%s\tDuration:%s\tError:%v\n",
-		info.FullMethod,
-		time.Since(start),
-		err)
-
-	return h, err
-}
+//
+// func UnaryInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+// 	start := time.Now()
+// 	//
+// 	//skip auth when ListReleases requested
+// 	//if info.FullMethod != "/proto.GoReleaseService/ListReleases" {
+// 	//	if err := authorize(ctx); err != nil {
+// 	//		return nil, err
+// 	//	}
+// 	//}
+// 	h, err := handler(ctx, req)
+//
+// 	//logging
+// 	log.Printf("request - Method:%s\tDuration:%s\tError:%v\n",
+// 		info.FullMethod,
+// 		time.Since(start),
+// 		err)
+//
+// 	return h, err
+// }

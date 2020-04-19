@@ -6,6 +6,8 @@ app:
 
   classifier:
     address:
+    notifier:
+      address:
 
   notifier:
     address:
