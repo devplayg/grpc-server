@@ -7,8 +7,8 @@ import (
 )
 
 type grpcService struct {
-	target proto.EventServiceClient
-	Log    *logrus.Logger
+	classifier *classifier
+	Log        *logrus.Logger
 }
 
 func (s *grpcService) Send(ctx context.Context, req *proto.Event) (*proto.Response, error) {
@@ -17,7 +17,7 @@ func (s *grpcService) Send(ctx context.Context, req *proto.Event) (*proto.Respon
 	//	"riskLevel": req.Header.RiskLevel,
 	//	"client": p.Addr.String(),
 	//}).Debug("called")
-	_, err := s.target.Send(context.Background(), req)
+	_, err := s.classifier.clientApi.Send(context.Background(), req)
 	if err != nil {
 		// Save into file
 	}
