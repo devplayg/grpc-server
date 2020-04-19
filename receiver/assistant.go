@@ -34,10 +34,10 @@ func (a *assistant) Start() error {
 				return
 			}
 			for _, b := range batch {
-				f.WriteString(fmt.Sprintf("%v\t%d\n", b.Header.Date, b.Header.RiskLevel))
+				f.WriteString(fmt.Sprintf("[%d] %v\t%d\n", b.Header.Version, b.Header.Date, b.Header.RiskLevel))
 			}
 			f.Close()
-			log.Debugf("saved - %d", len(batch))
+			log.Debugf("saved %d", len(batch))
 			batch = make([]*proto.Event, 0, a.maxQueueSize)
 		}
 
