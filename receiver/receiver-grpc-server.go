@@ -65,7 +65,7 @@ func (r *Receiver) getGrpcServerOptions() []grpc.ServerOption {
 	return opts
 }
 
-func (r *Receiver) startGrpcServer(grpcSender proto.EventServiceClient) error {
+func (r *Receiver) startGrpcServer(gRpcClient proto.EventServiceClient) error {
 	ln, err := net.Listen("tcp", r.config.App.Receiver.Address)
 	if err != nil {
 		return err
@@ -73,13 +73,13 @@ func (r *Receiver) startGrpcServer(grpcSender proto.EventServiceClient) error {
 	r.Log.Infof("gRPC server is listening on %s for requests from agent", r.config.App.Receiver.Address)
 
 	opts := r.getGrpcServerOptions()
-	r.recv = grpc.NewServer(opts...)
+	r.gRpcServer = grpc.NewServer(opts...)
 
 	// Register server to gRPC server
-	proto.RegisterEventServiceServer(r.recv, &output{grpcSender: grpcSender, Log: r.Log})
+	proto.RegisterEventServiceServer(r.gRpcServer, &grpcService{target: gRpcClient, Log: r.Log})
 
 	// Run
-	if err := r.recv.Serve(ln); err != nil {
+	if err := r.gRpcServer.Serve(ln); err != nil {
 		return err
 	}
 	return nil

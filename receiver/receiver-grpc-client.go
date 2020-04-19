@@ -7,7 +7,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-func (r *Receiver) connectWithClassifier() (proto.EventServiceClient, error) {
+func (r *Receiver) connectToClassifier() (proto.EventServiceClient, error) {
 	classifierConn, err := grpc.Dial(
 		r.config.App.Receiver.Classifier.Address,
 		grpc.WithInsecure(),
@@ -19,9 +19,9 @@ func (r *Receiver) connectWithClassifier() (proto.EventServiceClient, error) {
 	if err != nil {
 		return nil, err
 	}
-	r.classifierConn = classifierConn
+	r.gRpcClientConn = classifierConn
 
 	// Create client API for service
-	classifierApi := proto.NewEventServiceClient(r.classifierConn)
+	classifierApi := proto.NewEventServiceClient(r.gRpcClientConn)
 	return classifierApi, nil
 }
