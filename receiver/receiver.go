@@ -3,6 +3,7 @@ package receiver
 import (
 	"fmt"
 	grpc_server "github.com/devplayg/grpc-server"
+	"github.com/devplayg/grpc-server/proto"
 	"github.com/devplayg/hippo/v2"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
@@ -17,10 +18,10 @@ type Receiver struct {
 	config       *grpc_server.Config
 	gRpcServer   *grpc.Server
 	classifier   *classifier
-	assistant    *assistant
 	batchSize    int
 	batchTimeout time.Duration
 	storage      string
+	storageCh    chan *proto.Event
 }
 
 func NewReceiver(batchSize int, batchTimeout time.Duration, storage string) *Receiver {
@@ -28,6 +29,7 @@ func NewReceiver(batchSize int, batchTimeout time.Duration, storage string) *Rec
 		batchSize:    batchSize,
 		batchTimeout: batchTimeout,
 		storage:      storage,
+		storageCh:    make(chan *proto.Event, batchSize),
 	}
 }
 
@@ -43,13 +45,14 @@ func (r *Receiver) Start() error {
 	}
 
 	// Start assistant
-	r.assistant = newAssistant(r.batchSize, r.batchTimeout, r.storage)
-	r.assistant.Start()
+	if err := r.runStorageCh(); err != nil {
+		return fmt.Errorf("failed to run storage channal: %w", err)
+	}
 
 	ch := make(chan bool)
 	go func() {
 		defer close(ch)
-		if err := r.startGrpcServer(r.assistant.storageCh); err != nil {
+		if err := r.startGrpcServer(r.storageCh); err != nil {
 			log.Error(fmt.Errorf("failed to start gRPC server: %w", err))
 			return
 		}

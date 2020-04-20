@@ -4,8 +4,12 @@ import (
 	"fmt"
 	grpc_server "github.com/devplayg/grpc-server"
 	"github.com/devplayg/hippo/v2"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
+	"time"
 )
+
+var log *logrus.Logger
 
 // Classifier receives data from receiver via gRPC framework
 type Classifier struct {
@@ -14,10 +18,16 @@ type Classifier struct {
 	gRpcServer     *grpc.Server
 	gRpcClientConn *grpc.ClientConn
 	notifier       *notifier
+	batchSize      int
+	batchTimeout   time.Duration
+	storage        string
 }
 
-func NewClassifier() *Classifier {
-	return &Classifier{}
+func NewClassifier(batchSize int, batchTimeout time.Duration) *Classifier {
+	return &Classifier{
+		batchSize:    batchSize,
+		batchTimeout: batchTimeout,
+	}
 }
 
 func (c *Classifier) Start() error {
@@ -26,7 +36,7 @@ func (c *Classifier) Start() error {
 	}
 
 	// Connect to classifier
-	c.notifier = newNotifier(c.config.App.Classifier.Notifier.Address, c.Log)
+	c.notifier = newNotifier(c.config.App.Classifier.Notifier.Address)
 	if err := c.notifier.connect(); err != nil {
 		return fmt.Errorf("failed to connect to notifier: %w", err)
 	}
@@ -35,12 +45,15 @@ func (c *Classifier) Start() error {
 	go func() {
 		defer close(ch)
 		if err := c.startGrpcServer(); err != nil {
-			c.Log.Error(fmt.Errorf("failed to start gRPC server: %w", err))
+			log.Error(fmt.Errorf("failed to start gRPC server: %w", err))
 			return
 		}
-		c.Log.Debug("gRpcServer has been stopped")
+		log.Debug("gRpcServer has been stopped")
 	}()
-	c.Log.Infof("%s has been started", c.Engine.Config.Name)
+	log.WithFields(logrus.Fields{
+		"batchSize":        c.batchSize,
+		"batchTimeout(ms)": c.batchTimeout.Milliseconds(),
+	}).Infof("%s has been started", c.Engine.Config.Name)
 
 	<-c.Ctx.Done()
 
@@ -58,5 +71,6 @@ func (c *Classifier) Stop() error {
 	if err := c.notifier.disconnect(); err != nil {
 		c.Log.Error("failed to disconnect classifier")
 	}
+
 	return nil
 }

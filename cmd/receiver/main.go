@@ -45,8 +45,8 @@ func main() {
 		config.LogDir = ""
 	}
 
-	recv := receiver.NewReceiver(*batchSize, time.Duration(*batchTimeout)*time.Millisecond, *storage)
-	engine := hippo.NewEngine(recv, &config)
+	server := receiver.NewReceiver(*batchSize, time.Duration(*batchTimeout)*time.Millisecond, *storage)
+	engine := hippo.NewEngine(server, &config)
 	if err := engine.Start(); err != nil {
 		panic(err)
 	}

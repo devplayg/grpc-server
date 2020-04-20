@@ -8,6 +8,7 @@ import (
 
 func (r *Receiver) init() error {
 	log = r.Log
+
 	if err := r.loadConfig(); err != nil {
 		return err
 	}

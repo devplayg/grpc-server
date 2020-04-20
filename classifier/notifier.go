@@ -3,22 +3,19 @@ package classifier
 import (
 	grpc_server "github.com/devplayg/grpc-server"
 	"github.com/devplayg/grpc-server/proto"
-	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )
 
 type notifier struct {
 	gRpcClient proto.EventServiceClient
 	address    string
-	log        *logrus.Logger
 	conn       *grpc.ClientConn
 	clientApi  proto.EventServiceClient
 }
 
-func newNotifier(addr string, log *logrus.Logger) *notifier {
+func newNotifier(addr string) *notifier {
 	return &notifier{
 		address: addr,
-		log:     log,
 	}
 }
 
@@ -28,7 +25,7 @@ func (n *notifier) connect() error {
 		grpc.WithInsecure(),
 		grpc.WithStatsHandler(&grpc_server.ConnStatsHandler{
 			To:  "classifier",
-			Log: n.log,
+			Log: log,
 		}),
 	)
 	if err != nil {

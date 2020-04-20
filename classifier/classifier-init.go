@@ -6,6 +6,8 @@ import (
 )
 
 func (c *Classifier) init() error {
+	log = c.Log
+
 	config, err := grpc_server.LoadConfig()
 	if err != nil {
 		return fmt.Errorf("failed to load configuration")
