@@ -45,7 +45,7 @@ func (r *Receiver) Start() error {
 	}
 
 	// Start assistant
-	if err := r.runStorageCh(); err != nil {
+	if err := r.handleTxFailedEvent(); err != nil {
 		return fmt.Errorf("failed to run storage channal: %w", err)
 	}
 

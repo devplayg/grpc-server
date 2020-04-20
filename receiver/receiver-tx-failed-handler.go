@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func (r *Receiver) runStorageCh() error {
+func (r *Receiver) handleTxFailedEvent() error {
 	if err := grpc_server.EnsureDir(r.storage); err != nil {
 		return err
 	}
