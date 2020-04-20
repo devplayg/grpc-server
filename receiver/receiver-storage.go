@@ -3,21 +3,15 @@ package receiver
 import (
 	"fmt"
 	"github.com/devplayg/golibs/converter"
+	grpc_server "github.com/devplayg/grpc-server"
 	"github.com/devplayg/grpc-server/proto"
 	"io/ioutil"
-	"os"
 	"time"
 )
 
 func (r *Receiver) runStorageCh() error {
-	fi, err := os.Stat(r.storage)
-	if os.IsNotExist(err) {
-		if err := os.MkdirAll(r.storage, 0755); err != nil {
-			return fmt.Errorf("failed to create storage directory; %w", err)
-		}
-	}
-	if !fi.IsDir() {
-		return fmt.Errorf("storage '%s' is not directory", fi.Name())
+	if err := grpc_server.EnsureDir(r.storage); err != nil {
+		return err
 	}
 
 	go func() {
@@ -53,6 +47,13 @@ func (r *Receiver) runStorageCh() error {
 					timer.Stop()
 					save()
 				}
+			case <-r.Ctx.Done():
+				log.Debug("storage channel is done")
+				if len(batch) > 0 {
+					save()
+					return
+				}
+				return
 			case <-timer.C:
 				save()
 			}
