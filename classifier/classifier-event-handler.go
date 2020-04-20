@@ -123,28 +123,8 @@ func (c *Classifier) saveHeader(events []*EventWrapper) error {
 }
 
 func (c *Classifier) saveBody(events []*EventWrapper) error {
-	//c.minioClient.PutObject(, )
 	started := time.Now()
 	var total int64
-	//for _, e := range events {
-	//	for i, f := range e.event.Body.Files {
-	//		size := int64(len(f.Data))
-	//		r := bytes.NewReader(f.Data)
-	//		_, err := c.minioClient.PutObject(
-	//			c.config.App.Storage.Bucket,
-	//			fmt.Sprintf("%s_%d.jpg", e.Uuid.String(), i),
-	//			r,
-	//			size,
-	//			minio.PutObjectOptions{ContentType: ": image/jpeg"},
-	//		)
-	//		if err != nil {
-	//			log.Error(err)
-	//			continue
-	//		}
-	//
-	//		total += size
-	//	}
-	//}
 
 	r := bytes.NewReader(nil)
 	for _, e := range events {

@@ -1,0 +1,13 @@
+
+Install Go 1.13
+
+    $ wget https://dl.google.com/go/go1.13.10.linux-amd64.tar.gz
+    $ tar xvfz go1.13.10.linux-amd64.tar.gz -C /
+
+Settings
+    
+    $ vi ~/.profile && . ~/.profile
+    ...    
+    export GOPATH=/gohome
+    export GOROOT=/go
+    export PATH=$PATH:$GOROOT/bin:$GOPATH/bin

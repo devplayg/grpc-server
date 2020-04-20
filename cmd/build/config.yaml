@@ -16,9 +16,9 @@ app:
     interval: 3000
 
   storage:
-    address: 125.132.191.38:9001
-    access-key: unisem
-    secret-key: unisemunisem
+    address: 127.0.0.1:9001
+    access-key: devplayg
+    secret-key: devplayg12!@
     bucket: vas
 
 
