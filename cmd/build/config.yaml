@@ -14,7 +14,13 @@ app:
 
   calculator:
     interval: 3000
+
   storage:
+    address: 125.132.191.38:9001
+    access-key: unisem
+    secret-key: unisemunisem
+    bucket: vas
+
 
 spring:
   profiles: dev

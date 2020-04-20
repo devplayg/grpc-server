@@ -39,6 +39,13 @@ type Config struct {
 			Address  string
 			Insecure bool
 		}
+
+		Storage struct {
+			Address   string
+			Bucket    string
+			AccessKey string `json:"access-key"`
+			SecretKey string `json:"secret-key"`
+		}
 	}
 
 	Spring struct {

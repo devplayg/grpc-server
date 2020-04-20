@@ -10,6 +10,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/keepalive"
+	"io/ioutil"
 	"math/rand"
 	"os"
 	"sync"
@@ -24,6 +25,7 @@ var (
 	agentCount = fs.IntP("agent", "a", 3, "Client count")
 	dataCount  = fs.IntP("c", "c", 1, "Event count by client")
 	devices    []string
+	images     [][]byte
 )
 
 func init() {
@@ -34,6 +36,16 @@ func init() {
 	start := 65
 	for i := start; i < start+(*agentCount); i++ {
 		devices = append(devices, "DEVICE-"+string(i))
+	}
+
+	imgCount := 3
+	images = make([][]byte, imgCount)
+	for i := 1; i <= imgCount; i++ {
+		b, err := ioutil.ReadFile(fmt.Sprintf("sample%d.jpg", i))
+		if err != nil {
+			panic(err)
+		}
+		images[i-1] = b
 	}
 }
 
@@ -104,8 +116,8 @@ func generateEvent(deviceCode string) *proto.Event {
 		Nanos:   int32(now.Nanosecond()),
 	}
 
-	data := make([]byte, 16)
-	rand.Read(data)
+	//data := make([]byte, 16)
+	//rand.Read(data)
 
 	return &proto.Event{
 		Header: &proto.EventHeader{
@@ -119,7 +131,7 @@ func generateEvent(deviceCode string) *proto.Event {
 				{
 					Time:     t,
 					Category: rand.Int31n(5) + 1,
-					Data:     data,
+					Data:     images[rand.Intn(3)],
 				},
 			},
 		},

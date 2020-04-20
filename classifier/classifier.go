@@ -7,6 +7,7 @@ import (
 	"github.com/devplayg/hippo/v2"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jinzhu/gorm"
+	"github.com/minio/minio-go"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"time"
@@ -32,6 +33,9 @@ type Classifier struct {
 
 	// Device
 	deviceCodeMap map[string]int64
+
+	// Storage
+	minioClient *minio.Client
 }
 
 func NewClassifier(batchSize int, batchTimeout time.Duration) *Classifier {
@@ -57,12 +61,12 @@ func (c *Classifier) Start() error {
 	if err := c.handleEvent(); err != nil {
 		return fmt.Errorf("failed to start event handler; %w", err)
 	}
-
 	ch := make(chan bool)
 	go func() {
 		defer close(ch)
 		if err := c.startGrpcServer(); err != nil {
 			log.Error(fmt.Errorf("failed to start gRPC server: %w", err))
+			c.Cancel()
 			return
 		}
 		log.Debug("gRpcServer has been stopped")

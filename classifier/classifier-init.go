@@ -5,6 +5,7 @@ import (
 	grpc_server "github.com/devplayg/grpc-server"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
+	"github.com/minio/minio-go"
 	"net/url"
 	"strings"
 	"time"
@@ -28,9 +29,20 @@ func (c *Classifier) init() error {
 	if err := c.initDatabase(4, 4); err != nil {
 		return fmt.Errorf("failed to initialize database; %w", err)
 	}
-	//log.WithFields(logrus.Fields{
-	//	"maxIdleConns"
-	//})
+
+	// Initialize MinIO
+	//spew.Dump(c.config.App.Storage)
+	minioClient, err := minio.New(
+		c.config.App.Storage.Address,
+		c.config.App.Storage.AccessKey,
+		c.config.App.Storage.SecretKey,
+		false,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to initialize MinIO; %w", err)
+	}
+	minioClient.MakeBucket(c.config.App.Storage.Bucket, "")
+	c.minioClient = minioClient
 
 	// Load asset
 	if err := c.loadDevices(); err != nil {
