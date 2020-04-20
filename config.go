@@ -42,7 +42,7 @@ type Config struct {
 	}
 
 	Spring struct {
-		DataSource struct {
+		Datasource struct {
 			Url      string
 			Username string
 			Password string

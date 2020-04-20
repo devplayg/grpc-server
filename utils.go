@@ -6,14 +6,18 @@ import (
 )
 
 func EnsureDir(dir string) error {
-	fi, err := os.Stat(dir)
-	if os.IsNotExist(err) {
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
 		if err := os.MkdirAll(dir, 0755); err != nil {
 			return fmt.Errorf("failed to create storage directory; %w", err)
 		}
 	}
+
+	fi, err := os.Stat(dir)
+	if err != nil {
+		return err
+	}
 	if !fi.IsDir() {
-		return fmt.Errorf("storage '%s' is not directory", fi.Name())
+		return fmt.Errorf("not directory; %w", err)
 	}
 
 	return nil

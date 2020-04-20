@@ -16,7 +16,7 @@ type grpcService struct {
 func (s *grpcService) Send(ctx context.Context, req *proto.Event) (*proto.Response, error) {
 	// p, _ := peer.FromContext(ctx)
 	log.WithFields(logrus.Fields{
-		"riskLevel": req.Header.RiskLevel,
+		"eventType": req.Header.EventType,
 		// "client": p.Addr.String(),
 	}).Trace("received")
 

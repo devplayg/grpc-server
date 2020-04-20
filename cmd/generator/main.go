@@ -21,14 +21,20 @@ const addr = "localhost:8801"
 
 var (
 	fs         = pflag.NewFlagSet("generator", pflag.ContinueOnError)
-	agentCount = fs.IntP("agent", "a", 1, "Client count")
+	agentCount = fs.IntP("agent", "a", 3, "Client count")
 	dataCount  = fs.IntP("c", "c", 1, "Event count by client")
+	devices    []string
 )
 
 func init() {
 	rand.Seed(time.Now().UnixNano())
 	_ = fs.Parse(os.Args[1:])
 
+	devices = make([]string, 0)
+	start := 65
+	for i := start; i < start+(*agentCount); i++ {
+		devices = append(devices, "DEVICE-"+string(i))
+	}
 }
 
 func generateData() map[int32][]*proto.Event {
@@ -37,7 +43,7 @@ func generateData() map[int32][]*proto.Event {
 		k := int32(a)
 		data[k] = make([]*proto.Event, 0)
 		for i := 0; i < *dataCount; i++ {
-			data[k] = append(data[k], generateEvent(k))
+			data[k] = append(data[k], generateEvent(devices[k]))
 		}
 	}
 	return data
@@ -45,16 +51,15 @@ func generateData() map[int32][]*proto.Event {
 
 func main() {
 	data := generateData()
-
+	fmt.Printf("data generated\n")
 	wg := new(sync.WaitGroup)
-
 	for i := 0; i < *agentCount; i++ {
 		wg.Add(1)
 		k := int32(i)
 		go send(wg, data[k])
 	}
 	wg.Wait()
-	fmt.Printf("%d sent. done\n", (*agentCount)*(*dataCount))
+	fmt.Printf("%d sent\n", (*agentCount)*(*dataCount))
 }
 
 func send(wg *sync.WaitGroup, events []*proto.Event) {
@@ -90,28 +95,31 @@ func send(wg *sync.WaitGroup, events []*proto.Event) {
 			continue
 		}
 	}
-
 }
 
-func generateEvent(version int32) *proto.Event {
+func generateEvent(deviceCode string) *proto.Event {
 	now := time.Now()
 	t := &timestamp.Timestamp{
 		Seconds: now.Unix(),
 		Nanos:   int32(now.Nanosecond()),
 	}
 
+	data := make([]byte, 16)
+	rand.Read(data)
+
 	return &proto.Event{
 		Header: &proto.EventHeader{
-			Version:   version,
-			Date:      t,
-			RiskLevel: proto.EventHeader_RiskLevel(rand.Intn(5) + 1),
+			DeviceCode: deviceCode,
+			Version:    1,
+			Date:       t,
+			EventType:  proto.EventHeader_EventType(rand.Intn(5) + 1),
 		},
 		Body: &proto.EventBody{
 			Files: []*proto.File{
 				{
 					Time:     t,
 					Category: rand.Int31n(5) + 1,
-					Data:     []byte("abc"),
+					Data:     data,
 				},
 			},
 		},

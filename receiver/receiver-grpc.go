@@ -25,11 +25,11 @@ func (r *Receiver) startGrpcServer(storageCh chan<- *proto.Event) error {
 	r.gRpcServer = grpc.NewServer(opts...)
 
 	// Register server to gRPC server
-	service := grpcService{
+	service := &grpcService{
 		storageCh:  storageCh,
 		classifier: r.classifier,
 	}
-	proto.RegisterEventServiceServer(r.gRpcServer, &service)
+	proto.RegisterEventServiceServer(r.gRpcServer, service)
 
 	// Run
 	if err := r.gRpcServer.Serve(ln); err != nil {

@@ -44,7 +44,7 @@ func (r *Receiver) Start() error {
 		return fmt.Errorf("failed to connect to classifier: %w", err)
 	}
 
-	// Start assistant
+	// Handle TX failed events
 	if err := r.handleTxFailedEvent(); err != nil {
 		return fmt.Errorf("failed to run storage channal: %w", err)
 	}
@@ -56,7 +56,7 @@ func (r *Receiver) Start() error {
 			log.Error(fmt.Errorf("failed to start gRPC server: %w", err))
 			return
 		}
-		log.Info("gRpcServer has been stopped")
+		log.Debug("gRpcServer has been stopped")
 	}()
 	log.WithFields(logrus.Fields{
 		"batchSize":        r.batchSize,
@@ -66,7 +66,9 @@ func (r *Receiver) Start() error {
 	<-r.Ctx.Done()
 
 	// Stop gRPC server
-	r.gRpcServer.Stop()
+	if r.gRpcServer != nil {
+		r.gRpcServer.Stop()
+	}
 
 	// Waiting for gRPC server to shut down
 	<-ch
@@ -76,8 +78,10 @@ func (r *Receiver) Start() error {
 func (r *Receiver) Stop() error {
 	defer log.Infof("%s has been stopped", r.Engine.Config.Name)
 
-	if err := r.classifier.disconnect(); err != nil {
-		log.Error("failed to disconnect classifier")
+	if r.classifier != nil {
+		if err := r.classifier.disconnect(); err != nil {
+			log.Error("failed to disconnect classifier")
+		}
 	}
 
 	return nil

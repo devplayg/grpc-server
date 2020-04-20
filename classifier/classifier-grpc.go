@@ -24,7 +24,11 @@ func (c *Classifier) startGrpcServer() error {
 	c.gRpcServer = grpc.NewServer(opts...)
 
 	// Register server to gRPC server
-	proto.RegisterEventServiceServer(c.gRpcServer, &grpcService{notifier: c.notifier, log: c.Log})
+	service := &grpcService{
+		eventCh:  c.eventCh,
+		notifier: c.notifier,
+	}
+	proto.RegisterEventServiceServer(c.gRpcServer, service)
 
 	// Run
 	if err := c.gRpcServer.Serve(ln); err != nil {
@@ -60,7 +64,7 @@ func (c *Classifier) getGrpcServerOptions() []grpc.ServerOption {
 	}))
 
 	// Set logging
-	if c.Engine.Config.Debug {
+	if c.Engine.Config.Trace {
 		logrusEntry := logrus.NewEntry(c.Log)
 		opts = append(opts, grpc_middleware.WithUnaryServerChain(
 			grpc_ctxtags.UnaryServerInterceptor(

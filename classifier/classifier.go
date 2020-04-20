@@ -3,7 +3,10 @@ package classifier
 import (
 	"fmt"
 	grpc_server "github.com/devplayg/grpc-server"
+	"github.com/devplayg/grpc-server/proto"
 	"github.com/devplayg/hippo/v2"
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/jinzhu/gorm"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"time"
@@ -21,12 +24,21 @@ type Classifier struct {
 	batchSize      int
 	batchTimeout   time.Duration
 	storage        string
+	eventCh        chan *proto.Event
+
+	// Database
+	db         *gorm.DB
+	dbTimezone *time.Location
+
+	// Device
+	deviceCodeMap map[string]int64
 }
 
 func NewClassifier(batchSize int, batchTimeout time.Duration) *Classifier {
 	return &Classifier{
 		batchSize:    batchSize,
 		batchTimeout: batchTimeout,
+		eventCh:      make(chan *proto.Event, batchSize),
 	}
 }
 
@@ -39,6 +51,11 @@ func (c *Classifier) Start() error {
 	c.notifier = newNotifier(c.config.App.Classifier.Notifier.Address)
 	if err := c.notifier.connect(); err != nil {
 		return fmt.Errorf("failed to connect to notifier: %w", err)
+	}
+
+	// Start event handler
+	if err := c.handleEvent(); err != nil {
+		return fmt.Errorf("failed to start event handler; %w", err)
 	}
 
 	ch := make(chan bool)
@@ -58,7 +75,9 @@ func (c *Classifier) Start() error {
 	<-c.Ctx.Done()
 
 	// Stop gRPC server
-	c.gRpcServer.Stop()
+	if c.gRpcServer != nil {
+		c.gRpcServer.Stop()
+	}
 
 	// Waiting for gRPC server to shut down
 	<-ch
@@ -68,8 +87,10 @@ func (c *Classifier) Start() error {
 func (c *Classifier) Stop() error {
 	defer c.Log.Infof("%s has been stopped", c.Engine.Config.Name)
 
-	if err := c.notifier.disconnect(); err != nil {
-		c.Log.Error("failed to disconnect classifier")
+	if c.notifier != nil {
+		if err := c.notifier.disconnect(); err != nil {
+			c.Log.Error("failed to disconnect classifier")
+		}
 	}
 
 	return nil

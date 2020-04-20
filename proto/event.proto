@@ -22,21 +22,18 @@ message EventBody {
 
 message EventHeader {
     int32 version = 1;
-    google.protobuf.Timestamp date = 2;
-    enum RiskLevel {
+    string device_code = 2;
+    google.protobuf.Timestamp date = 3;
+    enum EventType {
         UNKNOWN = 0;
-        LOW = 1;
-        GUARDED = 2;
-        ELEVATED = 3;
-        HIGH = 4;
-        SEVERE = 5;
+        Event1 = 1;
+        Event2 = 2;
+        Event3 = 3;
+        Event4 = 4;
+        Event5 = 5;
     }
-    RiskLevel riskLevel = 3;
+    EventType eventType = 4;
 }
-
-//message Events {
-//    repeated Event events = 1;
-//}
 
 message File {
     int32 content_type = 1; // image, text or something

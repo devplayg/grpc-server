@@ -3,17 +3,12 @@ package receiver
 import (
 	"fmt"
 	"github.com/devplayg/golibs/converter"
-	grpc_server "github.com/devplayg/grpc-server"
 	"github.com/devplayg/grpc-server/proto"
 	"io/ioutil"
 	"time"
 )
 
 func (r *Receiver) handleTxFailedEvent() error {
-	if err := grpc_server.EnsureDir(r.storage); err != nil {
-		return err
-	}
-
 	go func() {
 		batch := make([]*proto.Event, 0, r.batchSize)
 		timer := time.NewTimer(r.batchTimeout)

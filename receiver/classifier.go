@@ -53,8 +53,11 @@ func (c *classifier) connect() error {
 }
 
 func (c *classifier) disconnect() error {
-	if err := c.conn.Close(); err != nil {
-		return err
+	if c.conn != nil {
+		if err := c.conn.Close(); err != nil {
+			return err
+		}
 	}
 	return nil
+
 }

@@ -3,24 +3,24 @@ package classifier
 import (
 	"context"
 	"github.com/devplayg/grpc-server/proto"
-	"github.com/sirupsen/logrus"
 )
 
 type grpcService struct {
 	notifier *notifier
-	log      *logrus.Logger
+	eventCh  chan<- *proto.Event
 }
 
 func (s *grpcService) Send(ctx context.Context, req *proto.Event) (*proto.Response, error) {
+	s.eventCh <- req
 	//p, _ := peer.FromContext(ctx)
-	s.log.WithFields(logrus.Fields{
-		"riskLevel": req.Header.RiskLevel,
-		//	"client": p.Addr.String(),
-	}).Debug("received")
-	_, err := s.notifier.clientApi.Send(context.Background(), req)
-	if err != nil {
-		// Save into file
-	}
+	//s.log.WithFields(logrus.Fields{
+	//	"eventType": req.Header.EventType,
+	//	//	"client": p.Addr.String(),
+	//}).Debug("received")
+	//_, err := s.notifier.clientApi.Send(context.Background(), req)
+	//if err != nil {
+	//	// Save into file
+	//}
 
 	//return nil, status.Errorf(codes.OutOfRange, "err")
 	// status.Error(codes.NotFound, "id was not found")

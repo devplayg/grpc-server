@@ -39,8 +39,10 @@ func (n *notifier) connect() error {
 }
 
 func (n *notifier) disconnect() error {
-	if err := n.conn.Close(); err != nil {
-		return err
+	if n.conn != nil {
+		if err := n.conn.Close(); err != nil {
+			return err
+		}
 	}
 	return nil
 }
