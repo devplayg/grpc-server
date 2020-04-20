@@ -5,12 +5,55 @@ import (
 	grpc_server "github.com/devplayg/grpc-server"
 	"github.com/devplayg/grpc-server/proto"
 	"github.com/google/uuid"
-	"github.com/jinzhu/gorm"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
 )
+
+func (c *Classifier) eventToTsv(events []*proto.Event) string {
+	var text string
+	for _, r := range events {
+		deviceId, _ := c.deviceCodeMap[r.Header.DeviceCode]
+		text += fmt.Sprintf("%s\t%d\t%d\t%s\t%d\n",
+			time.Unix(r.Header.Date.Seconds, 0).Format(grpc_server.DefaultDateFormat),
+			deviceId,
+			r.Header.EventType,
+			uuid.New().String(),
+			0,
+		)
+	}
+	return strings.TrimSpace(text)
+}
+
+func writeTextIntoTempFile(dir, text string) (string, error) {
+	tmpFile, err := ioutil.TempFile(dir, "db-")
+	if err != nil {
+		return "", fmt.Errorf("failed to create temporary file for saving data; %w", err)
+	}
+	defer tmpFile.Close()
+
+	if _, err := tmpFile.WriteString(text); err != nil {
+		return "", fmt.Errorf("failed to write data into temp file; %w", err)
+	}
+	return filepath.ToSlash(tmpFile.Name()), nil
+}
+
+func (c *Classifier) saveIntoDatabase(events []*proto.Event) error {
+	text := c.eventToTsv(events)
+	path, err := writeTextIntoTempFile(grpc_server.TempDir, text)
+	if err != nil {
+		return err
+	}
+	db := grpc_server.BulkInsert(c.db, "log", "date, device_id, event_type, UUID, flag", path)
+	if db.Error != nil {
+		return fmt.Errorf("failed to insert; %w", err)
+	}
+	log.Debugf("inserted %d row(s)", db.RowsAffected)
+	os.Remove(path)
+	return nil
+}
 
 func (c *Classifier) handleEvent() error {
 	go func() {
@@ -19,36 +62,9 @@ func (c *Classifier) handleEvent() error {
 		timer.Stop()
 
 		save := func() {
-			var text string
-			for _, r := range batch {
-				deviceId, _ := c.deviceCodeMap[r.Header.DeviceCode]
-				text += fmt.Sprintf("%s\t%d\t%d\t%s\t%d\n",
-					time.Unix(r.Header.Date.Seconds, 0).Format(grpc_server.DefaultDateFormat),
-					deviceId,
-					r.Header.EventType,
-					uuid.New().String(),
-					0,
-				)
+			if err := c.saveIntoDatabase(batch); err != nil {
+				log.Error(err)
 			}
-			text = strings.TrimSpace(text)
-			tmpFile, err := ioutil.TempFile(grpc_server.TempDir, "db-")
-			if err != nil {
-				log.Error(fmt.Errorf("failed to create temporary file for saving data; %w", err))
-				return
-			}
-			if _, err := tmpFile.WriteString(text); err != nil {
-				log.Error(fmt.Errorf("failed to write data into temp file; %w", err))
-				return
-			}
-			tmpFile.Close()
-
-			db := c.insertFactoryEvent(tmpFile.Name())
-			if db.Error != nil {
-				log.Error(fmt.Errorf("failed to insert; %w", err))
-				return
-			}
-			log.Debugf("inserted %d row(s)", db.RowsAffected)
-
 			batch = make([]*proto.Event, 0, c.batchSize)
 		}
 
@@ -77,17 +93,4 @@ func (c *Classifier) handleEvent() error {
 	}()
 
 	return nil
-}
-
-func (c *Classifier) insertFactoryEvent(path string) *gorm.DB {
-	p := filepath.ToSlash(path)
-	query := `
-		LOAD DATA LOCAL INFILE %q
-		INTO TABLE log
-		FIELDS TERMINATED BY '\t'
-		LINES TERMINATED BY '\n' 
-		(DATE, device_id, event_type, UUID, flag)`
-	query = fmt.Sprintf(query, p)
-	return c.db.Exec(query)
-
 }
