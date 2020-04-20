@@ -2,48 +2,65 @@ package receiver
 
 import (
 	"fmt"
+	"github.com/devplayg/golibs/converter"
 	"github.com/devplayg/grpc-server/proto"
 	"io/ioutil"
+	"os"
 	"time"
 )
 
 type assistant struct {
-	ch              chan *proto.Event
+	storageCh       chan *proto.Event
 	maxQueueSize    int
 	processInterval time.Duration
+	storage         string
 }
 
-func newAssistant(maxQueueSize int, processInterval time.Duration) *assistant {
+func newAssistant(batchSize int, batchTimeout time.Duration, storage string) *assistant {
 	return &assistant{
-		ch:              make(chan *proto.Event, maxQueueSize),
-		maxQueueSize:    maxQueueSize,
-		processInterval: processInterval,
+		storageCh:       make(chan *proto.Event, batchSize),
+		maxQueueSize:    batchSize,
+		processInterval: batchTimeout,
+		storage:         storage,
 	}
 }
 
 func (a *assistant) Start() error {
+	fi, err := os.Stat(a.storage)
+	if os.IsNotExist(err) {
+		if err := os.MkdirAll(a.storage, 0755); err != nil {
+			return fmt.Errorf("failed to create storage directory; %w", err)
+		}
+	}
+	if !fi.IsDir() {
+		return fmt.Errorf("storage '%s' is not directory", fi.Name())
+	}
+
 	go func() {
 		batch := make([]*proto.Event, 0, a.maxQueueSize)
 		timer := time.NewTimer(a.processInterval)
 		timer.Stop()
 
 		save := func() {
-			f, err := ioutil.TempFile(".", "receiver-data-")
+			encoded, err := converter.EncodeToBytes(batch)
+			if err != nil {
+				log.Error(fmt.Errorf("failed to encode bytes; %w", err))
+				return
+			}
+			f, err := ioutil.TempFile(a.storage, "receiver-data-")
 			if err != nil {
 				log.Error(err)
 				return
 			}
-			for _, b := range batch {
-				f.WriteString(fmt.Sprintf("[%d] %v\t%d\n", b.Header.Version, b.Header.Date, b.Header.RiskLevel))
-			}
-			f.Close()
+			defer f.Close()
+			f.Write(encoded)
 			log.Debugf("saved %d", len(batch))
 			batch = make([]*proto.Event, 0, a.maxQueueSize)
 		}
 
 		for {
 			select {
-			case event := <-a.ch:
+			case event := <-a.storageCh:
 				batch = append(batch, event)
 				if len(batch) == 1 {
 					timer.Reset(a.processInterval)

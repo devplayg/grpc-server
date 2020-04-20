@@ -13,18 +13,23 @@ import (
 	"net"
 )
 
-func (r *Receiver) startGrpcServer(ch chan<- *proto.Event) error {
+func (r *Receiver) startGrpcServer(storageCh chan<- *proto.Event) error {
 	ln, err := net.Listen("tcp", r.config.App.Receiver.Address)
 	if err != nil {
 		return err
 	}
-	r.Log.Infof("gRPC server is listening on %s for requests from agent", r.config.App.Receiver.Address)
+	log.Infof("gRPC server is listening on %s for requests from agent", r.config.App.Receiver.Address)
 
+	// Create gRPC server
 	opts := r.getGrpcServerOptions()
 	r.gRpcServer = grpc.NewServer(opts...)
 
 	// Register server to gRPC server
-	proto.RegisterEventServiceServer(r.gRpcServer, &grpcService{ch: ch, classifier: r.classifier, log: r.Log})
+	service := grpcService{
+		storageCh:  storageCh,
+		classifier: r.classifier,
+	}
+	proto.RegisterEventServiceServer(r.gRpcServer, &service)
 
 	// Run
 	if err := r.gRpcServer.Serve(ln); err != nil {
@@ -60,7 +65,7 @@ func (r *Receiver) getGrpcServerOptions() []grpc.ServerOption {
 	}))
 
 	// Set logging
-	if r.Engine.Config.Debug {
+	if r.Engine.Config.Trace {
 		logrusEntry := logrus.NewEntry(r.Log)
 		opts = append(opts, grpc_middleware.WithUnaryServerChain(
 			grpc_ctxtags.UnaryServerInterceptor(

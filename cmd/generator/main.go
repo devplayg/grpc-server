@@ -54,7 +54,7 @@ func main() {
 		go send(wg, data[k])
 	}
 	wg.Wait()
-	fmt.Printf("done\n")
+	fmt.Printf("%d sent. done\n", (*agentCount)*(*dataCount))
 }
 
 func send(wg *sync.WaitGroup, events []*proto.Event) {

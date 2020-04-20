@@ -10,20 +10,19 @@ import (
 
 type grpcService struct {
 	classifier *classifier
-	log        *logrus.Logger
-	ch         chan<- *proto.Event
+	storageCh  chan<- *proto.Event
 }
 
 func (s *grpcService) Send(ctx context.Context, req *proto.Event) (*proto.Response, error) {
 	// p, _ := peer.FromContext(ctx)
-	s.log.WithFields(logrus.Fields{
+	log.WithFields(logrus.Fields{
 		"riskLevel": req.Header.RiskLevel,
 		// "client": p.Addr.String(),
-	}).Debug("received")
+	}).Trace("received")
 
 	go func() {
 		if err := s.relayToClassifier(req); err != nil {
-			s.ch <- req
+			s.storageCh <- req
 		}
 	}()
 

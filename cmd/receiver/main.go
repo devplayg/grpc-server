@@ -6,6 +6,7 @@ import (
 	"github.com/devplayg/hippo/v2"
 	"github.com/spf13/pflag"
 	"os"
+	"time"
 )
 
 const (
@@ -15,13 +16,17 @@ const (
 )
 
 var (
-	fs       = pflag.NewFlagSet(appName, pflag.ContinueOnError)
-	debug    = fs.Bool("debug", false, "Debug") // GODEBUG=http2debug=2
-	verbose  = fs.BoolP("verbose", "v", false, "Verbose")
-	version  = fs.Bool("version", false, "Version")
-	insecure = fs.Bool("insecure", false, "Disable TLS")
-	certFile = fs.String("certFile", "server.crt", "SSL Certificate file")
-	keyFile  = fs.String("keyFile", "server.key", "SSL Certificate key file")
+	fs           = pflag.NewFlagSet(appName, pflag.ExitOnError)
+	debug        = fs.Bool("debug", false, "Debug") // GODEBUG=http2debug=2
+	trace        = fs.Bool("trace", false, "Trace")
+	verbose      = fs.BoolP("verbose", "v", false, "Verbose")
+	version      = fs.Bool("version", false, "Version")
+	insecure     = fs.Bool("insecure", false, "Disable TLS")
+	certFile     = fs.String("certFile", "server.crt", "SSL Certificate file")
+	keyFile      = fs.String("keyFile", "server.key", "SSL Certificate key file")
+	batchSize    = fs.Int("batchsize", 10000, "Batch size")
+	batchTimeout = fs.Int("batchtime", 1000, "Batch timeout, in milliseconds")
+	storage      = fs.String("storage", "data", "Storage path")
 )
 
 func main() {
@@ -30,6 +35,7 @@ func main() {
 		Description: appDescription,
 		Version:     appVersion,
 		Debug:       *debug,
+		Trace:       *trace,
 		CertFile:    *certFile,
 		KeyFile:     *keyFile,
 		Insecure:    *insecure,
@@ -39,7 +45,8 @@ func main() {
 		config.LogDir = ""
 	}
 
-	engine := hippo.NewEngine(receiver.NewReceiver(), &config)
+	recv := receiver.NewReceiver(*batchSize, time.Duration(*batchTimeout)*time.Millisecond, *storage)
+	engine := hippo.NewEngine(recv, &config)
 	if err := engine.Start(); err != nil {
 		panic(err)
 	}
@@ -53,13 +60,3 @@ func init() {
 		os.Exit(0)
 	}
 }
-
-//
-//
-//func Path(rel string) string {
-//	if filepath.IsAbs(rel) {
-//		return rel
-//	}
-//
-//	return filepath.Join(basepath, rel)
-//}

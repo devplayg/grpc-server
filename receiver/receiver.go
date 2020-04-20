@@ -14,14 +14,21 @@ var log *logrus.Logger
 // Receiver receives data from agents via gRPC framework
 type Receiver struct {
 	hippo.Launcher
-	config     *grpc_server.Config
-	gRpcServer *grpc.Server
-	classifier *classifier
-	assistant  *assistant
+	config       *grpc_server.Config
+	gRpcServer   *grpc.Server
+	classifier   *classifier
+	assistant    *assistant
+	batchSize    int
+	batchTimeout time.Duration
+	storage      string
 }
 
-func NewReceiver() *Receiver {
-	return &Receiver{}
+func NewReceiver(batchSize int, batchTimeout time.Duration, storage string) *Receiver {
+	return &Receiver{
+		batchSize:    batchSize,
+		batchTimeout: batchTimeout,
+		storage:      storage,
+	}
 }
 
 func (r *Receiver) Start() error {
@@ -36,19 +43,22 @@ func (r *Receiver) Start() error {
 	}
 
 	// Start assistant
-	r.assistant = newAssistant(10, 5*time.Second)
+	r.assistant = newAssistant(r.batchSize, r.batchTimeout, r.storage)
 	r.assistant.Start()
 
 	ch := make(chan bool)
 	go func() {
 		defer close(ch)
-		if err := r.startGrpcServer(r.assistant.ch); err != nil {
+		if err := r.startGrpcServer(r.assistant.storageCh); err != nil {
 			log.Error(fmt.Errorf("failed to start gRPC server: %w", err))
 			return
 		}
 		log.Info("gRpcServer has been stopped")
 	}()
-	log.Infof("%s has been started", r.Engine.Config.Name)
+	log.WithFields(logrus.Fields{
+		"batchSize":        r.batchSize,
+		"batchTimeout(ms)": r.batchTimeout.Milliseconds(),
+	}).Infof("%s has been started", r.Engine.Config.Name)
 
 	<-r.Ctx.Done()
 
