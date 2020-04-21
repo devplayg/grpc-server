@@ -34,6 +34,9 @@ func (s *grpcService) Send(ctx context.Context, req *proto.Event) (*proto.Respon
 			log.Error("failed to relay request  to classifier")
 			return
 		}
+		for _, f := range req.Body.Files {
+			stats.Add("size", int64(len(f.Data)))
+		}
 		stats.Add("relayed", 1)
 		stats.Get("end").(*expvar.Int).Set(time.Now().UnixNano())
 	}()

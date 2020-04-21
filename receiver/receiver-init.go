@@ -63,13 +63,15 @@ func (r *Receiver) initMonitor() error {
 	stats.Set("start", new(expvar.Int))
 	stats.Set("end", new(expvar.Int))
 	stats.Set("relayed", new(expvar.Int))
+	stats.Set("size", new(expvar.Int))
 
 	http.HandleFunc("/stats", func(w http.ResponseWriter, r *http.Request) {
 		m := map[string]interface{}{
 			"duration": (stats.Get("end").(*expvar.Int).Value() - stats.Get("start").(*expvar.Int).Value()) / int64(time.Millisecond),
 			"relayed":  stats.Get("relayed").(*expvar.Int).Value(),
+			"size":     stats.Get("size").(*expvar.Int).Value(),
 		}
-		s := fmt.Sprintf("%d\t %d", m["relayed"], m["duration"])
+		s := fmt.Sprintf("%d\t%d\t%d", m["relayed"], m["duration"], m["size"])
 		w.Write([]byte(s))
 	})
 
