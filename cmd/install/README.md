@@ -14,5 +14,9 @@ Settings
     export GOROOT=/go
     export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
     alias dev="cd $GOPATH/src/github.com/devplayg/grpc-server/cmd/build"
-    #alias pull=" GOPATH/src/github.com/devplayg/grpc-server && git pull"
     alias pull="cd $GOPATH/src/github.com/devplayg/grpc-server && git pull && cd -"
+
+
+set
+
+    go get -u github.com/devplayg/grpc-server

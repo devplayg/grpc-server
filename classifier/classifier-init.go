@@ -41,7 +41,7 @@ func (c *Classifier) init() error {
 	if err != nil {
 		return fmt.Errorf("failed to initialize MinIO; %w", err)
 	}
-	minioClient.MakeBucket(c.config.App.Storage.Bucket, "")
+	//minioClient.MakeBucket(c.config.App.Storage.Bucket, "")
 	c.minioClient = minioClient
 
 	// Load asset

@@ -54,6 +54,7 @@ func (r *Receiver) Start() error {
 		defer close(ch)
 		if err := r.startGrpcServer(r.storageCh); err != nil {
 			log.Error(fmt.Errorf("failed to start gRPC server: %w", err))
+			r.Cancel()
 			return
 		}
 		log.Debug("gRpcServer has been stopped")

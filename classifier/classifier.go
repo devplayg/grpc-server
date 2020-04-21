@@ -51,7 +51,7 @@ func (c *Classifier) Start() error {
 		return fmt.Errorf("failed to initialize %s; %w", c.Engine.Config.Name, err)
 	}
 
-	// Connect to classifier
+	// Connect to notifier
 	c.notifier = newNotifier(c.config.App.Classifier.Notifier.Address)
 	if err := c.notifier.connect(); err != nil {
 		return fmt.Errorf("failed to connect to notifier: %w", err)
@@ -61,6 +61,7 @@ func (c *Classifier) Start() error {
 	if err := c.handleEvent(); err != nil {
 		return fmt.Errorf("failed to start event handler; %w", err)
 	}
+
 	ch := make(chan bool)
 	go func() {
 		defer close(ch)
