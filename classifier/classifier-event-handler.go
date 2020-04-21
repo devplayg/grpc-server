@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -92,15 +93,36 @@ func writeTextIntoTempFile(dir, text string) (string, error) {
 
 func (c *Classifier) save(events []*EventWrapper) error {
 	c.once.Do(func() {
-		stats.Set("save-start", time.Now())
+		stats.Set("save-db-start", time.Now())
+		stats.Set("save-file-start", time.Now())
 	})
-	if err := c.saveHeader(events); err != nil {
-		return fmt.Errorf("failed to insert; %w", err)
-	}
 
-	if err := c.saveBody(events); err != nil {
-		return fmt.Errorf("failed to insert; %w", err)
-	}
+	wg := new(sync.WaitGroup)
+	go func() {
+		wg.Add(1)
+		defer func() {
+			wg.Done()
+			stats.Set("save-db-end", time.Now())
+		}()
+		if err := c.saveHeader(events); err != nil {
+			log.Error(fmt.Errorf("failed to insert; %w", err))
+			return
+		}
+	}()
+
+	go func() {
+		wg.Add(1)
+		defer func() {
+			wg.Done()
+			stats.Set("save-file-end", time.Now())
+		}()
+		if err := c.saveBody(events); err != nil {
+			log.Error(fmt.Errorf("failed to insert; %w", err))
+			return
+		}
+	}()
+	wg.Wait()
+
 	stats.Set("save-end", time.Now())
 	return nil
 }
