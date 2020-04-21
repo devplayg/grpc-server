@@ -132,8 +132,8 @@ func (c *Classifier) initMonitor() error {
 			"duration":      (stats.Get("end").(*expvar.Int).Value() - stats.Get("start").(*expvar.Int).Value()) / int64(time.Millisecond),
 			"inserted-time": stats.Get("inserted-time").(*expvar.Int).Value(),
 			"uploaded-time": stats.Get("uploaded-time").(*expvar.Int).Value(),
-			"uploaded-size": stats.Get("uploaded-time").(*expvar.Int).Value(),
-			"uploaded":      stats.Get("uploaded-time").(*expvar.Int).Value(),
+			"uploaded-size": stats.Get("uploaded-size").(*expvar.Int).Value(),
+			"uploaded":      stats.Get("uploaded").(*expvar.Int).Value(),
 		}
 
 		s := fmt.Sprintf("%d\t%d\t%d\t%d\t%d",
