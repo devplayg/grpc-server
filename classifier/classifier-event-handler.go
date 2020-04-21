@@ -91,6 +91,9 @@ func writeTextIntoTempFile(dir, text string) (string, error) {
 }
 
 func (c *Classifier) save(events []*EventWrapper) error {
+	c.once.Do(func() {
+		stats.Set("save-start", time.Now())
+	})
 	if err := c.saveHeader(events); err != nil {
 		return fmt.Errorf("failed to insert; %w", err)
 	}
@@ -98,7 +101,7 @@ func (c *Classifier) save(events []*EventWrapper) error {
 	if err := c.saveBody(events); err != nil {
 		return fmt.Errorf("failed to insert; %w", err)
 	}
-
+	stats.Set("save-end", time.Now())
 	return nil
 }
 
@@ -115,10 +118,9 @@ func (c *Classifier) saveHeader(events []*EventWrapper) error {
 	}
 	os.Remove(path)
 	dur := time.Since(started)
-	log.Debugf("inserted %d row(s)", db.RowsAffected)
 	log.WithFields(logrus.Fields{
-		"time":         dur.Seconds(),
-		"rowsAffected": db.RowsAffected,
+		"insert-time": dur.Seconds(),
+		"count":       db.RowsAffected,
 	}).Debugf("inserted")
 
 	stats.Add("inserted", db.RowsAffected)

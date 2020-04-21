@@ -6,15 +6,21 @@ import (
 	"github.com/devplayg/grpc-server/proto"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/connectivity"
+	"sync"
 	"time"
 )
 
 type grpcService struct {
 	classifier *classifier
 	storageCh  chan<- *proto.Event
+	once       sync.Once
 }
 
 func (s *grpcService) Send(ctx context.Context, req *proto.Event) (*proto.Response, error) {
+	s.once.Do(func() {
+		stats.Set("start", time.Now())
+	})
+
 	// p, _ := peer.FromContext(ctx)
 	log.WithFields(logrus.Fields{
 		"eventType": req.Header.EventType,
@@ -22,16 +28,14 @@ func (s *grpcService) Send(ctx context.Context, req *proto.Event) (*proto.Respon
 	}).Trace("received")
 
 	go func() {
-		started := time.Now()
 		if err := s.relayToClassifier(req); err != nil {
 			s.storageCh <- req
 			log.Error("failed to relay request  to classifier")
 			return
 		}
 		stats.Add("relayed", 1)
-		stats.Add("relayed-time", time.Since(started).Milliseconds())
+		stats.Set("end", time.Now())
 	}()
-
 	// return nil, status.Errorf(codes.OutOfRange, "err")
 	// status.Error(codes.NotFound, "id was not found")
 	// return nil, err

@@ -11,6 +11,7 @@ import (
 	"github.com/minio/minio-go"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
+	"sync"
 	"time"
 )
 
@@ -40,6 +41,8 @@ type Classifier struct {
 
 	// Storage
 	minioClient *minio.Client
+
+	once sync.Once
 }
 
 func NewClassifier(batchSize int, batchTimeout time.Duration) *Classifier {
