@@ -124,18 +124,24 @@ func (c *Classifier) initMonitor() error {
 	stats.Set("end", new(expvar.Int))
 	stats.Set("inserted-time", new(expvar.Int))
 	stats.Set("uploaded-time", new(expvar.Int))
+	stats.Set("uploaded-size", new(expvar.Int))
+	stats.Set("uploaded", new(expvar.Int))
 
 	http.HandleFunc("/stats", func(w http.ResponseWriter, r *http.Request) {
 		m := map[string]interface{}{
 			"duration":      (stats.Get("end").(*expvar.Int).Value() - stats.Get("start").(*expvar.Int).Value()) / int64(time.Millisecond),
 			"inserted-time": stats.Get("inserted-time").(*expvar.Int).Value(),
 			"uploaded-time": stats.Get("uploaded-time").(*expvar.Int).Value(),
+			"uploaded-size": stats.Get("uploaded-time").(*expvar.Int).Value(),
+			"uploaded":      stats.Get("uploaded-time").(*expvar.Int).Value(),
 		}
 
-		s := fmt.Sprintf("%d\t%d\t%d",
+		s := fmt.Sprintf("%d\t%d\t%d\t%d\t%d",
+			m["uploaded"],
 			m["duration"],
 			m["inserted-time"],
 			m["uploaded-time"],
+			m["uploaded-size"],
 		)
 		//dur := stats.Get("end").(*expvar.Int).Value() - stats.Get("start").(*expvar.Int).Value()
 		//m["relayed-time"] = dur / int64(time.Millisecond)

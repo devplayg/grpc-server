@@ -69,7 +69,7 @@ func (r *Receiver) initMonitor() error {
 			"duration": (stats.Get("end").(*expvar.Int).Value() - stats.Get("start").(*expvar.Int).Value()) / int64(time.Millisecond),
 			"relayed":  stats.Get("relayed").(*expvar.Int).Value(),
 		}
-		s := fmt.Sprintf("%d\t%d", m["relayed"], m["duration"])
+		s := fmt.Sprintf("%d\t %d", m["relayed"], m["duration"])
 		w.Write([]byte(s))
 	})
 
