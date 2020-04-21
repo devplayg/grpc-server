@@ -6,7 +6,7 @@ build() {
     chmod 755 $target
 }
 
-build generator
+build receuver
 build classifier
 build calculator
 build generator
