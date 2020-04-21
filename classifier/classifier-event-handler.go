@@ -178,7 +178,7 @@ func (c *Classifier) saveBody(events []*EventWrapper) error {
 		"duration": dur.Seconds(),
 		"count":    len(events),
 		"size":     total,
-		"Bps":      float64(total) / dur.Seconds(),
+		//"Bps":      float64(total) / dur.Seconds(),
 	}).Debugf("uploaded")
 
 	return nil
