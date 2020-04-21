@@ -173,12 +173,13 @@ func (c *Classifier) saveBody(events []*EventWrapper) error {
 		}
 	}
 
+	dur := time.Since(started)
 	log.WithFields(logrus.Fields{
-		"time":    time.Since(started).Seconds(),
-		"count":   len(events),
-		"size(B)": total,
-		"Bps":     float32(total) / float32(len(events)),
-	}).Debugf("saved")
+		"duration": dur.Seconds(),
+		"count":    len(events),
+		"size":     total,
+		"Bps":      float64(total) / dur.Seconds(),
+	}).Debugf("uploaded")
 
 	return nil
 }
