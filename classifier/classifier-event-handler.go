@@ -114,11 +114,15 @@ func (c *Classifier) saveHeader(events []*EventWrapper) error {
 		return err
 	}
 	os.Remove(path)
+	dur := time.Since(started)
 	log.Debugf("inserted %d row(s)", db.RowsAffected)
 	log.WithFields(logrus.Fields{
-		"time":         time.Since(started).Seconds(),
+		"time":         dur.Seconds(),
 		"rowsAffected": db.RowsAffected,
 	}).Debugf("inserted")
+
+	stats.Add("inserted", db.RowsAffected)
+	stats.Add("inserted-time", dur.Milliseconds())
 	return nil
 }
 
@@ -131,6 +135,7 @@ func (c *Classifier) saveBody(events []*EventWrapper) error {
 		for i, f := range e.event.Body.Files {
 			size := int64(len(f.Data))
 			r.Reset(f.Data)
+			started := time.Now()
 			_, err := c.minioClient.PutObject(
 				c.config.App.Storage.Bucket,
 				fmt.Sprintf("%s_%d.jpg", e.Uuid.String(), i),
@@ -143,6 +148,8 @@ func (c *Classifier) saveBody(events []*EventWrapper) error {
 				continue
 			}
 
+			stats.Add("uploaded", 1)
+			stats.Add("inserted-time", time.Since(started).Milliseconds())
 			total += size
 		}
 	}

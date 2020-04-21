@@ -1,6 +1,7 @@
 package receiver
 
 import (
+	"expvar"
 	"fmt"
 	grpc_server "github.com/devplayg/grpc-server"
 	"os"
@@ -8,6 +9,7 @@ import (
 
 func (r *Receiver) init() error {
 	log = r.Log
+	stats = expvar.NewMap(r.Engine.Config.Name)
 
 	if err := r.loadConfig(); err != nil {
 		return err

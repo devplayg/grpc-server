@@ -1,6 +1,7 @@
 package classifier
 
 import (
+	"expvar"
 	"fmt"
 	grpc_server "github.com/devplayg/grpc-server"
 	"github.com/jinzhu/gorm"
@@ -14,6 +15,7 @@ import (
 func (c *Classifier) init() error {
 	// Initialize logger
 	log = c.Log
+	stats = expvar.NewMap(c.Engine.Config.Name)
 
 	// Initialize configuration
 	config, err := grpc_server.LoadConfig()

@@ -18,12 +18,11 @@ import (
 	"time"
 )
 
-const addr = "localhost:8801"
-
 var (
-	fs         = pflag.NewFlagSet("generator", pflag.ContinueOnError)
+	fs         = pflag.NewFlagSet("generator", pflag.ExitOnError)
 	agentCount = fs.IntP("agent", "a", 3, "Client count")
 	dataCount  = fs.IntP("c", "c", 1, "Event count by client")
+	addr       = fs.String("addr", "localhost:8801", "Receiver address")
 	devices    []string
 	images     [][]byte
 )
@@ -63,7 +62,7 @@ func generateData() map[int32][]*proto.Event {
 
 func main() {
 	data := generateData()
-	fmt.Printf("data generated\n")
+	started := time.Now()
 	wg := new(sync.WaitGroup)
 	for i := 0; i < *agentCount; i++ {
 		wg.Add(1)
@@ -71,7 +70,7 @@ func main() {
 		go send(wg, data[k])
 	}
 	wg.Wait()
-	fmt.Printf("%d sent\n", (*agentCount)*(*dataCount))
+	fmt.Printf("agent=%d, totalData=%d, time=%3.1f\n", *agentCount, (*agentCount)*(*dataCount), time.Since(started).Seconds())
 }
 
 func send(wg *sync.WaitGroup, events []*proto.Event) {
@@ -90,7 +89,7 @@ func send(wg *sync.WaitGroup, events []*proto.Event) {
 	}
 
 	// Create connection
-	conn, err := grpc.Dial(addr, opts...)
+	conn, err := grpc.Dial(*addr, opts...)
 	if err != nil {
 		panic(err)
 	}

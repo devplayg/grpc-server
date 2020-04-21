@@ -27,6 +27,7 @@ var (
 	batchSize    = fs.Int("batchsize", 10000, "Batch size")
 	batchTimeout = fs.Int("batchtime", 1000, "Batch timeout, in milliseconds")
 	storage      = fs.String("storage", "data", "Storage path")
+	// monitor      = fs.String("monitor", ":8123", "Monitor address")
 )
 
 func main() {

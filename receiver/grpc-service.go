@@ -6,6 +6,7 @@ import (
 	"github.com/devplayg/grpc-server/proto"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/connectivity"
+	"time"
 )
 
 type grpcService struct {
@@ -21,9 +22,14 @@ func (s *grpcService) Send(ctx context.Context, req *proto.Event) (*proto.Respon
 	}).Trace("received")
 
 	go func() {
+		started := time.Now()
 		if err := s.relayToClassifier(req); err != nil {
 			s.storageCh <- req
+			log.Error("failed to relay request  to classifier")
+			return
 		}
+		stats.Add("relayed", 1)
+		stats.Add("relayed-time", time.Since(started).Milliseconds())
 	}()
 
 	// return nil, status.Errorf(codes.OutOfRange, "err")

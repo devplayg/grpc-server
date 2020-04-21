@@ -1,6 +1,7 @@
 package receiver
 
 import (
+	"expvar"
 	"fmt"
 	grpc_server "github.com/devplayg/grpc-server"
 	"github.com/devplayg/grpc-server/proto"
@@ -10,7 +11,10 @@ import (
 	"time"
 )
 
-var log *logrus.Logger
+var (
+	log   *logrus.Logger
+	stats *expvar.Map
+)
 
 // Receiver receives data from agents via gRPC framework
 type Receiver struct {
