@@ -21,7 +21,6 @@ app:
     secret-key: devplayg12!@
     bucket: vas
 
-
 spring:
   profiles: dev
   datasource:
