@@ -149,7 +149,8 @@ func (c *Classifier) saveBody(events []*EventWrapper) error {
 			}
 
 			stats.Add("uploaded", 1)
-			stats.Add("inserted-time", time.Since(started).Milliseconds())
+			stats.Add("uploaded-size", size)
+			stats.Add("uploaded-time", time.Since(started).Milliseconds())
 			total += size
 		}
 	}

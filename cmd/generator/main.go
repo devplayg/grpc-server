@@ -130,7 +130,7 @@ func generateEvent(deviceCode string) *proto.Event {
 				{
 					Time:     t,
 					Category: rand.Int31n(5) + 1,
-					Data:     images[rand.Intn(3)],
+					Data:     images[0],
 				},
 			},
 		},
