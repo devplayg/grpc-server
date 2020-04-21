@@ -2,6 +2,7 @@ package receiver
 
 import (
 	"context"
+	"expvar"
 	"fmt"
 	"github.com/devplayg/grpc-server/proto"
 	"github.com/sirupsen/logrus"
@@ -18,7 +19,7 @@ type grpcService struct {
 
 func (s *grpcService) Send(ctx context.Context, req *proto.Event) (*proto.Response, error) {
 	s.once.Do(func() {
-		stats.Set("start", time.Now())
+		stats.Get("start").(*expvar.Int).Set(time.Now().UnixNano())
 	})
 
 	// p, _ := peer.FromContext(ctx)
@@ -34,8 +35,9 @@ func (s *grpcService) Send(ctx context.Context, req *proto.Event) (*proto.Respon
 			return
 		}
 		stats.Add("relayed", 1)
-		stats.Set("end", time.Now())
+		stats.Get("end").(*expvar.Int).Set(time.Now().UnixNano())
 	}()
+
 	// return nil, status.Errorf(codes.OutOfRange, "err")
 	// status.Error(codes.NotFound, "id was not found")
 	// return nil, err

@@ -70,7 +70,7 @@ func main() {
 		go send(wg, data[k])
 	}
 	wg.Wait()
-	fmt.Printf("agent=%d, totalData=%d, time=%3.1f\n", *agentCount, (*agentCount)*(*dataCount), time.Since(started).Seconds())
+	fmt.Printf("agent=%d, totalData=%d, time=%d\n", *agentCount, (*agentCount)*(*dataCount), time.Since(started).Milliseconds())
 }
 
 func send(wg *sync.WaitGroup, events []*proto.Event) {

@@ -4,7 +4,9 @@ import (
 	"expvar"
 	"fmt"
 	grpc_server "github.com/devplayg/grpc-server"
+	"net/http"
 	"os"
+	"time"
 )
 
 func (r *Receiver) init() error {
@@ -18,6 +20,11 @@ func (r *Receiver) init() error {
 	if err := r.initCredentials(); err != nil {
 		return err
 	}
+
+	if err := r.initMonitor(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -48,6 +55,25 @@ func (r *Receiver) initCredentials() error {
 	if _, err := os.Stat(r.Engine.Path(r.Engine.Config.KeyFile)); os.IsNotExist(err) {
 		return fmt.Errorf("certificate key file not found; %w", err)
 	}
+
+	return nil
+}
+
+func (r *Receiver) initMonitor() error {
+	stats.Set("start", new(expvar.Int))
+	stats.Set("end", new(expvar.Int))
+	stats.Set("relayed", new(expvar.Int))
+
+	http.HandleFunc("/stats", func(w http.ResponseWriter, r *http.Request) {
+		m := map[string]interface{}{
+			"duration": (stats.Get("end").(*expvar.Int).Value() - stats.Get("start").(*expvar.Int).Value()) / int64(time.Millisecond),
+			"relayed":  stats.Get("relayed").(*expvar.Int).Value(),
+		}
+		s := fmt.Sprintf("%d\t%d", m["relayed"], m["duration"])
+		w.Write([]byte(s))
+	})
+
+	go http.ListenAndServe(":8123", nil)
 
 	return nil
 }

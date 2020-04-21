@@ -2,6 +2,7 @@ package classifier
 
 import (
 	"bytes"
+	"expvar"
 	"fmt"
 	grpc_server "github.com/devplayg/grpc-server"
 	"github.com/devplayg/grpc-server/proto"
@@ -93,29 +94,22 @@ func writeTextIntoTempFile(dir, text string) (string, error) {
 
 func (c *Classifier) save(events []*EventWrapper) error {
 	c.once.Do(func() {
-		stats.Set("save-db-start", time.Now())
-		stats.Set("save-file-start", time.Now())
+		stats.Get("start").(*expvar.Int).Set(time.Now().UnixNano())
 	})
 
 	wg := new(sync.WaitGroup)
+	wg.Add(1)
 	go func() {
-		wg.Add(1)
-		defer func() {
-			wg.Done()
-			stats.Set("save-db-end", time.Now())
-		}()
+		defer wg.Done()
 		if err := c.saveHeader(events); err != nil {
 			log.Error(fmt.Errorf("failed to insert; %w", err))
 			return
 		}
 	}()
 
+	wg.Add(1)
 	go func() {
-		wg.Add(1)
-		defer func() {
-			wg.Done()
-			stats.Set("save-file-end", time.Now())
-		}()
+		defer wg.Done()
 		if err := c.saveBody(events); err != nil {
 			log.Error(fmt.Errorf("failed to insert; %w", err))
 			return
@@ -123,7 +117,7 @@ func (c *Classifier) save(events []*EventWrapper) error {
 	}()
 	wg.Wait()
 
-	stats.Set("save-end", time.Now())
+	stats.Get("end").(*expvar.Int).Set(time.Now().UnixNano())
 	return nil
 }
 

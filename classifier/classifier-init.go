@@ -7,6 +7,7 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	"github.com/minio/minio-go"
+	"net/http"
 	"net/url"
 	"strings"
 	"time"
@@ -50,6 +51,12 @@ func (c *Classifier) init() error {
 	if err := c.loadDevices(); err != nil {
 		return fmt.Errorf("failed to load devices; %w", err)
 	}
+
+	// Monitoring
+	if err := c.initMonitor(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -110,4 +117,34 @@ func ConvertJdbcUrlToGoOrm(str, username, password string) (string, *time.Locati
 	)
 
 	return connStr, loc, nil
+}
+
+func (c *Classifier) initMonitor() error {
+	stats.Set("start", new(expvar.Int))
+	stats.Set("end", new(expvar.Int))
+	stats.Set("inserted-time", new(expvar.Int))
+	stats.Set("uploaded-time", new(expvar.Int))
+
+	http.HandleFunc("/stats", func(w http.ResponseWriter, r *http.Request) {
+		m := map[string]interface{}{
+			"duration":      (stats.Get("end").(*expvar.Int).Value() - stats.Get("start").(*expvar.Int).Value()) / int64(time.Millisecond),
+			"inserted-time": stats.Get("inserted-time").(*expvar.Int).Value(),
+			"uploaded-time": stats.Get("uploaded-time").(*expvar.Int).Value(),
+		}
+
+		s := fmt.Sprintf("%d\t%d\t%d",
+			m["duration"],
+			m["inserted-time"],
+			m["uploaded-time"],
+		)
+		//dur := stats.Get("end").(*expvar.Int).Value() - stats.Get("start").(*expvar.Int).Value()
+		//m["relayed-time"] = dur / int64(time.Millisecond)
+		//m["relayed"] = stats.Get("relayed").(*expvar.Int).Value()
+		//b, _ := json.MarshalIndent(m, "", "  ")
+		w.Write([]byte(s))
+	})
+
+	go http.ListenAndServe(":8123", nil)
+
+	return nil
 }
