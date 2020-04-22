@@ -4,6 +4,7 @@ import (
 	"expvar"
 	"fmt"
 	grpc_server "github.com/devplayg/grpc-server"
+	"net/http"
 	"os"
 	"time"
 )
@@ -71,7 +72,7 @@ func (r *Receiver) initMonitor() error {
 	//	w.Write([]byte(s))
 	//})
 	//
-	//go http.ListenAndServe(":8123", nil)
+	go http.ListenAndServe(":8123", nil)
 
 	return nil
 }

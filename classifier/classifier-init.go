@@ -7,6 +7,7 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	"github.com/minio/minio-go"
+	"net/http"
 	"net/url"
 	"strings"
 	"time"
@@ -132,7 +133,7 @@ func resetStats() {
 
 func (c *Classifier) initMonitor() error {
 	resetStats()
-	//
+
 	//http.HandleFunc("/stats", func(w http.ResponseWriter, r *http.Request) {
 	//	m := map[string]interface{}{
 	//		"duration":      (stats.Get("end").(*expvar.Int).Value() - stats.Get("start").(*expvar.Int).Value()) / int64(time.Millisecond),
@@ -156,7 +157,7 @@ func (c *Classifier) initMonitor() error {
 	//	w.Write([]byte(s))
 	//})
 	//
-	//go http.ListenAndServe(":8124", nil)
+	go http.ListenAndServe(":8124", nil)
 
 	return nil
 }
