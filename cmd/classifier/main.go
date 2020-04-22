@@ -47,7 +47,7 @@ func main() {
 		config.LogDir = ""
 	}
 
-	workerCount := runtime.NumCPU()
+	workerCount := runtime.NumCPU() * 2
 	if *worker > 0 {
 		workerCount = *worker
 	}
