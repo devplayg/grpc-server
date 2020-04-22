@@ -66,5 +66,4 @@ func (c *classifier) disconnect() error {
 		}
 	}
 	return nil
-
 }

@@ -144,31 +144,23 @@ func startHttpServer(agentCount, dataCountByAgent int, dur time.Duration) {
 	go http.ListenAndServe("127.0.0.1:8123", nil)
 }
 
-func getRemoteStats(url string) string {
-	resp, err := http.Get(url)
-	if err != nil {
-		panic(err)
-	}
-	data, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		panic(err)
-	}
-	return string(data)
-}
-
 func send(wg *sync.WaitGroup, events []*proto.Event) {
 	defer wg.Done()
 
-	config := &tls.Config{
-		InsecureSkipVerify: true,
-	}
 	opts := []grpc.DialOption{
-		grpc.WithTransportCredentials(credentials.NewTLS(config)),
 		grpc.WithKeepaliveParams(keepalive.ClientParameters{
 			// Time:                10 * time.Second, // send pings every 10 seconds if there is no activity
 			// Timeout:             time.Second,      // wait 1 second for ping ack before considering the connection dead
 			// PermitWithoutStream: true,             // send pings even without active streams
 		}),
+	}
+	if !*insecure {
+		config := &tls.Config{
+			InsecureSkipVerify: true,
+		}
+		opts = append(opts, grpc.WithTransportCredentials(credentials.NewTLS(config)))
+	} else {
+		opts = append(opts, grpc.WithInsecure())
 	}
 
 	// Create connection
