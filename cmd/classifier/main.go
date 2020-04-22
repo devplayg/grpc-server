@@ -6,6 +6,7 @@ import (
 	"github.com/devplayg/hippo/v2"
 	"github.com/spf13/pflag"
 	"os"
+	"runtime"
 	"time"
 )
 
@@ -27,6 +28,7 @@ var (
 	batchSize    = fs.Int("batchsize", 10000, "Batch size")
 	batchTimeout = fs.Int("batchtime", 1000, "Batch timeout, in milliseconds")
 	storage      = fs.String("storage", "data", "Storage path")
+	worker       = fs.Int("worker", 0, "Worker count")
 )
 
 func main() {
@@ -45,7 +47,12 @@ func main() {
 		config.LogDir = ""
 	}
 
-	server := classifier.NewClassifier(*batchSize, time.Duration(*batchTimeout)*time.Millisecond)
+	workerCount := runtime.NumCPU()
+	if *worker > 0 {
+		workerCount = *worker
+	}
+
+	server := classifier.NewClassifier(*batchSize, time.Duration(*batchTimeout)*time.Millisecond, workerCount)
 	engine := hippo.NewEngine(server, &config)
 	if err := engine.Start(); err != nil {
 		panic(err)

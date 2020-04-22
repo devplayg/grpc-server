@@ -11,7 +11,6 @@ import (
 	"github.com/minio/minio-go"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
-	"runtime"
 	"sync"
 	"time"
 )
@@ -47,12 +46,12 @@ type Classifier struct {
 	once sync.Once
 }
 
-func NewClassifier(batchSize int, batchTimeout time.Duration) *Classifier {
+func NewClassifier(batchSize int, batchTimeout time.Duration, worker int) *Classifier {
 	return &Classifier{
 		batchSize:    batchSize,
 		batchTimeout: batchTimeout,
 		eventCh:      make(chan *proto.Event, batchSize),
-		workerCount:  runtime.NumCPU() * 2,
+		workerCount:  worker,
 	}
 }
 
