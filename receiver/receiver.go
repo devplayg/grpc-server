@@ -68,6 +68,7 @@ func (r *Receiver) Start() error {
 	log.WithFields(logrus.Fields{
 		"batchSize":        r.batchSize,
 		"batchTimeout(ms)": r.batchTimeout.Milliseconds(),
+		"workerCount":      r.workerCount,
 	}).Infof("%s has been started", r.Engine.Config.Name)
 
 	<-r.Ctx.Done()
