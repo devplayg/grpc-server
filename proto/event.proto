@@ -3,11 +3,14 @@ syntax = "proto3";
 package proto;
 
 import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
 
 service EventService {
     rpc Send (Event) returns (Response) {
     }
     rpc SendHeader (EventHeader) returns (Response) {
+    }
+    rpc ResetStats (google.protobuf.Empty) returns (google.protobuf.Empty) {
     }
 }
 

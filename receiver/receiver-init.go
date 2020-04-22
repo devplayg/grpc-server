@@ -60,10 +60,7 @@ func (r *Receiver) initCredentials() error {
 }
 
 func (r *Receiver) initMonitor() error {
-	stats.Set("start", new(expvar.Int))
-	stats.Set("end", new(expvar.Int))
-	stats.Set("relayed", new(expvar.Int))
-	stats.Set("size", new(expvar.Int))
+	resetStats()
 
 	http.HandleFunc("/stats", func(w http.ResponseWriter, r *http.Request) {
 		m := map[string]interface{}{
@@ -78,4 +75,13 @@ func (r *Receiver) initMonitor() error {
 	go http.ListenAndServe(":8123", nil)
 
 	return nil
+}
+
+func resetStats() {
+	log.Debug("reset stats")
+
+	stats.Set("start", new(expvar.Int))
+	stats.Set("end", new(expvar.Int))
+	stats.Set("relayed", new(expvar.Int))
+	stats.Set("size", new(expvar.Int))
 }

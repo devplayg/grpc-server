@@ -4,6 +4,7 @@ import (
 	"context"
 	"expvar"
 	"github.com/devplayg/grpc-server/proto"
+	"github.com/golang/protobuf/ptypes/empty"
 	"sync"
 	"time"
 )
@@ -39,4 +40,9 @@ func (s *grpcService) Send(ctx context.Context, req *proto.Event) (*proto.Respon
 
 func (s *grpcService) SendHeader(ctx context.Context, req *proto.EventHeader) (*proto.Response, error) {
 	return &proto.Response{}, nil
+}
+
+func (s *grpcService) ResetStats(ctx context.Context, req *empty.Empty) (*empty.Empty, error) {
+	resetStats()
+	return &empty.Empty{}, nil
 }

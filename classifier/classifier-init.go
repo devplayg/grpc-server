@@ -119,13 +119,19 @@ func ConvertJdbcUrlToGoOrm(str, username, password string) (string, *time.Locati
 	return connStr, loc, nil
 }
 
-func (c *Classifier) initMonitor() error {
+func resetStats() {
+	log.Debug("reset stats")
+
 	stats.Set("start", new(expvar.Int))
 	stats.Set("end", new(expvar.Int))
 	stats.Set("inserted-time", new(expvar.Int))
 	stats.Set("uploaded-time", new(expvar.Int))
 	stats.Set("uploaded-size", new(expvar.Int))
 	stats.Set("uploaded", new(expvar.Int))
+}
+
+func (c *Classifier) initMonitor() error {
+	resetStats()
 
 	http.HandleFunc("/stats", func(w http.ResponseWriter, r *http.Request) {
 		m := map[string]interface{}{
@@ -139,9 +145,9 @@ func (c *Classifier) initMonitor() error {
 		s := fmt.Sprintf("%d\t%d\t%d\t%d\t%d",
 			m["uploaded"],
 			m["duration"],
+			m["uploaded-size"],
 			m["inserted-time"],
 			m["uploaded-time"],
-			m["uploaded-size"],
 		)
 		//dur := stats.Get("end").(*expvar.Int).Value() - stats.Get("start").(*expvar.Int).Value()
 		//m["relayed-time"] = dur / int64(time.Millisecond)
