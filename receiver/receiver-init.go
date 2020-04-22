@@ -81,6 +81,7 @@ func resetStats() {
 	log.Debug("reset stats")
 
 	stats.Set("start", new(expvar.Int))
+	stats.Get("start").(*expvar.Int).Set(time.Now().UnixNano())
 	stats.Set("end", new(expvar.Int))
 	stats.Set("relayed", new(expvar.Int))
 	stats.Set("size", new(expvar.Int))

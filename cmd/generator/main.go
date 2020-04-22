@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"github.com/devplayg/grpc-server/proto"
+	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/spf13/pflag"
 	"google.golang.org/grpc"
@@ -12,7 +13,9 @@ import (
 	"google.golang.org/grpc/keepalive"
 	"io/ioutil"
 	"math/rand"
+	"net/http"
 	"os"
+	"strings"
 	"sync"
 
 	"time"
@@ -20,9 +23,10 @@ import (
 
 var (
 	fs         = pflag.NewFlagSet("generator", pflag.ExitOnError)
-	agentCount = fs.IntP("agent", "a", 3, "Client count")
+	agentCount = fs.IntP("agent", "a", 10, "Client count")
 	dataCount  = fs.IntP("c", "c", 1, "Event count by client")
-	addr       = fs.String("addr", "localhost:8801", "Receiver address")
+	receiver   = fs.String("recv", "localhost:8801", "Receiver address")
+	classifier = fs.String("classy", "localhost:8802", "Classifier address")
 	devices    []string
 	images     [][]byte
 )
@@ -62,15 +66,83 @@ func generateData() map[int32][]*proto.Event {
 
 func main() {
 	data := generateData()
-	started := time.Now()
 	wg := new(sync.WaitGroup)
+
+	// Reset
+	reset()
+
+	started := time.Now()
 	for i := 0; i < *agentCount; i++ {
 		wg.Add(1)
 		k := int32(i)
 		go send(wg, data[k])
 	}
+
 	wg.Wait()
-	fmt.Printf("agent=%d, totalData=%d, time=%d\n", *agentCount, (*agentCount)*(*dataCount), time.Since(started).Milliseconds())
+	dur := time.Since(started)
+	fmt.Printf("agent=%d, totalData=%d, time=%d\n", *agentCount, (*agentCount)*(*dataCount), dur.Milliseconds())
+
+	startHttpServer(*agentCount, *dataCount, dur)
+	fmt.Scanln()
+}
+
+func reset() {
+	config := &tls.Config{
+		InsecureSkipVerify: true,
+	}
+	opts := []grpc.DialOption{
+		grpc.WithTransportCredentials(credentials.NewTLS(config)),
+		grpc.WithKeepaliveParams(keepalive.ClientParameters{}),
+	}
+
+	// Create connection
+	conn, err := grpc.Dial(*receiver, opts...)
+	if err != nil {
+		panic(err)
+	}
+	defer conn.Close()
+
+	// Create client API for service
+	clientApi := proto.NewEventServiceClient(conn)
+
+	// gRPC remote procedure call
+	_, err = clientApi.ResetStats(context.Background(), &empty.Empty{})
+	if err != nil {
+		panic(err)
+	}
+}
+
+func startHttpServer(agentCount, dataCountByAgent int, dur time.Duration) {
+	http.HandleFunc("/stats", func(w http.ResponseWriter, r *http.Request) {
+		arr1 := strings.Split(*receiver, ":")
+		arr2 := strings.Split(*classifier, ":")
+		receiverUrl := fmt.Sprintf("http://%s:8123/stats", arr1[0])
+		classifierUrl := fmt.Sprintf("http://%s:8124/stats", arr2[0])
+
+		s := fmt.Sprintf("%d\t%d\t%d\t%d\t%s\t%s",
+			agentCount,
+			dataCountByAgent,
+			agentCount*dataCountByAgent,
+			dur.Milliseconds(),
+			getRemoteStats(receiverUrl),
+			getRemoteStats(classifierUrl),
+		)
+		w.Write([]byte(s))
+	})
+
+	go http.ListenAndServe("127.0.0.1:8120", nil)
+}
+
+func getRemoteStats(url string) string {
+	resp, err := http.Get(url)
+	if err != nil {
+		panic(err)
+	}
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		panic(err)
+	}
+	return string(data)
 }
 
 func send(wg *sync.WaitGroup, events []*proto.Event) {
@@ -89,7 +161,7 @@ func send(wg *sync.WaitGroup, events []*proto.Event) {
 	}
 
 	// Create connection
-	conn, err := grpc.Dial(*addr, opts...)
+	conn, err := grpc.Dial(*receiver, opts...)
 	if err != nil {
 		panic(err)
 	}

@@ -123,6 +123,7 @@ func resetStats() {
 	log.Debug("reset stats")
 
 	stats.Set("start", new(expvar.Int))
+	stats.Get("start").(*expvar.Int).Set(time.Now().UnixNano())
 	stats.Set("end", new(expvar.Int))
 	stats.Set("inserted-time", new(expvar.Int))
 	stats.Set("uploaded-time", new(expvar.Int))
@@ -156,7 +157,7 @@ func (c *Classifier) initMonitor() error {
 		w.Write([]byte(s))
 	})
 
-	go http.ListenAndServe(":8123", nil)
+	go http.ListenAndServe(":8124", nil)
 
 	return nil
 }
