@@ -5,7 +5,6 @@ import (
 	"expvar"
 	"fmt"
 	"github.com/devplayg/grpc-server/proto"
-	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/connectivity"
 	"sync"
 	"time"
@@ -21,12 +20,6 @@ func (s *grpcService) Send(ctx context.Context, req *proto.Event) (*proto.Respon
 	s.once.Do(func() {
 		stats.Get("start").(*expvar.Int).Set(time.Now().UnixNano())
 	})
-
-	// p, _ := peer.FromContext(ctx)
-	log.WithFields(logrus.Fields{
-		"eventType": req.Header.EventType,
-		// "client": p.Addr.String(),
-	}).Trace("received")
 
 	go func() {
 		if err := s.relayToClassifier(req); err != nil {

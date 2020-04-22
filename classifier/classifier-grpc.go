@@ -25,8 +25,9 @@ func (c *Classifier) startGrpcServer() error {
 
 	// Register server to gRPC server
 	service := &grpcService{
-		eventCh:  c.eventCh,
-		notifier: c.notifier,
+		classifier: c,
+		notifier:   c.notifier,
+		ch:         make(chan bool, c.workerCount),
 	}
 	proto.RegisterEventServiceServer(c.gRpcServer, service)
 

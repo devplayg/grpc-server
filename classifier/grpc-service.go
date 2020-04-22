@@ -3,17 +3,28 @@ package classifier
 import (
 	"context"
 	"github.com/devplayg/grpc-server/proto"
-	"sync"
 )
 
 type grpcService struct {
 	notifier *notifier
-	eventCh  chan<- *proto.Event
-	once     sync.Once
+	//eventCh  chan<- *proto.Event
+	classifier *Classifier
+	//once     sync.Once
+	ch chan bool
 }
 
 func (s *grpcService) Send(ctx context.Context, req *proto.Event) (*proto.Response, error) {
-	s.eventCh <- req
+	s.ch <- true
+	go func() {
+		defer func() {
+			<-s.ch
+		}()
+
+		if err := s.classifier.save(req); err != nil {
+			log.Error(err)
+			return
+		}
+	}()
 	return &proto.Response{}, nil
 }
 

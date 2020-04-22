@@ -11,6 +11,7 @@ import (
 	"github.com/minio/minio-go"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
+	"runtime"
 	"sync"
 	"time"
 )
@@ -31,6 +32,7 @@ type Classifier struct {
 	batchTimeout   time.Duration
 	storage        string
 	eventCh        chan *proto.Event
+	workerCount    int
 
 	// Database
 	db         *gorm.DB
@@ -50,6 +52,7 @@ func NewClassifier(batchSize int, batchTimeout time.Duration) *Classifier {
 		batchSize:    batchSize,
 		batchTimeout: batchTimeout,
 		eventCh:      make(chan *proto.Event, batchSize),
+		workerCount:  runtime.NumCPU(),
 	}
 }
 
@@ -65,9 +68,9 @@ func (c *Classifier) Start() error {
 	}
 
 	// Start event handler
-	if err := c.handleEvent(); err != nil {
-		return fmt.Errorf("failed to start event handler; %w", err)
-	}
+	//if err := c.handleEvent(); err != nil {
+	//	return fmt.Errorf("failed to start event handler; %w", err)
+	//}
 
 	ch := make(chan bool)
 	go func() {
@@ -82,6 +85,7 @@ func (c *Classifier) Start() error {
 	log.WithFields(logrus.Fields{
 		"batchSize":        c.batchSize,
 		"batchTimeout(ms)": c.batchTimeout.Milliseconds(),
+		"workerCount":      c.workerCount,
 	}).Infof("%s has been started", c.Engine.Config.Name)
 
 	<-c.Ctx.Done()

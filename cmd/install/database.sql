@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS `log` (
                                      `event_type` int(11) NOT NULL,
                                      `uuid` varchar(256) COLLATE utf8mb4_unicode_ci NOT NULL,
                                      `flag` int(11) NOT NULL DEFAULT 0,
+                                     `count`int(11) NOT NULL DEFAULT 0,
                                      `created` datetime NOT NULL DEFAULT current_timestamp(),
                                      PRIMARY KEY (`log_id`),
                                      KEY `ix_log_date` (`date`),
