@@ -45,7 +45,7 @@ func (r *Receiver) Start() error {
 	}
 
 	// Classifier
-	r.classifier = newClassifier(r.config.App.Receiver.Classifier.Address)
+	r.classifier = newClassifier(r.config.App.Receiver.Classifier.Address, r.Engine.Config.Insecure)
 	if err := r.classifier.connect(); err != nil {
 		return fmt.Errorf("failed to connect to classifier: %w", err)
 	}

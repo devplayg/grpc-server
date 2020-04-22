@@ -25,6 +25,7 @@ var (
 	agentCount = fs.IntP("agent", "a", 10, "Client count")
 	dataCount  = fs.IntP("c", "c", 1, "Event count by client")
 	addr       = fs.String("addr", "localhost:8801", "Receiver address")
+	insecure   = fs.Bool("insecure", false, "Disable TLS")
 	devices    []string
 	images     [][]byte
 
@@ -94,12 +95,16 @@ func generateData() map[int32][]*proto.Event {
 }
 
 func connect() (*grpc.ClientConn, proto.EventServiceClient) {
-	config := &tls.Config{
-		InsecureSkipVerify: true,
-	}
-	opts := []grpc.DialOption{
-		grpc.WithTransportCredentials(credentials.NewTLS(config)),
-		grpc.WithKeepaliveParams(keepalive.ClientParameters{}),
+
+	opts := make([]grpc.DialOption, 0)
+	opts = append(opts, grpc.WithKeepaliveParams(keepalive.ClientParameters{}))
+	if !*insecure {
+		config := &tls.Config{
+			InsecureSkipVerify: true,
+		}
+		opts = append(opts, grpc.WithTransportCredentials(credentials.NewTLS(config)))
+	} else {
+		opts = append(opts, grpc.WithInsecure())
 	}
 
 	// Create connection

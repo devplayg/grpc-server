@@ -86,6 +86,7 @@ func (r *Receiver) getGrpcServerOptions() []grpc.ServerOption {
 		opts = append(opts, grpc.Creds(creds))
 		r.Log.Infof("secured gRPC with %s", creds.Info().SecurityProtocol)
 	}
+
 	// grpc.UnaryInterceptor(grpc_server.UnaryInterceptor),
 
 	return opts

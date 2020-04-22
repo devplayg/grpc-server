@@ -16,20 +16,18 @@ type classifier struct {
 	log        *logrus.Logger
 	conn       *grpc.ClientConn
 	clientApi  proto.EventServiceClient
+	insecure   bool
 }
 
-func newClassifier(addr string) *classifier {
+func newClassifier(addr string, insecure bool) *classifier {
 	return &classifier{
-		address: addr,
+		address:  addr,
+		insecure: insecure,
 	}
 }
 
 func (c *classifier) connect() error {
-	config := &tls.Config{
-		InsecureSkipVerify: true,
-	}
 	opts := []grpc.DialOption{
-		grpc.WithTransportCredentials(credentials.NewTLS(config)),
 		grpc.WithKeepaliveParams(keepalive.ClientParameters{
 			// Time:                10 * time.Second, // send pings every 10 seconds if there is no activity
 			// Timeout:             time.Second,      // wait 1 second for ping ack before considering the connection dead
@@ -39,6 +37,15 @@ func (c *classifier) connect() error {
 			To:  "classifier",
 			Log: log,
 		}),
+	}
+
+	if !c.insecure {
+		config := &tls.Config{
+			InsecureSkipVerify: true,
+		}
+		opts = append(opts, grpc.WithTransportCredentials(credentials.NewTLS(config)))
+	} else {
+		opts = append(opts, grpc.WithInsecure())
 	}
 
 	conn, err := grpc.Dial(c.address, opts...)
