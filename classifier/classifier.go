@@ -52,7 +52,7 @@ func NewClassifier(batchSize int, batchTimeout time.Duration) *Classifier {
 		batchSize:    batchSize,
 		batchTimeout: batchTimeout,
 		eventCh:      make(chan *proto.Event, batchSize),
-		workerCount:  runtime.NumCPU(),
+		workerCount:  runtime.NumCPU() * 2,
 	}
 }
 

@@ -58,7 +58,11 @@ func (c *Classifier) save(event *proto.Event) error {
 
 	wg.Add(1)
 	go func() {
-		defer wg.Done()
+		defer func() {
+			log.Tracef("uploading %s [done]", eventWrapper.uuid)
+			wg.Done()
+		}()
+		log.Tracef("uploading %s", eventWrapper.uuid)
 		if err := c.saveBody(eventWrapper); err != nil {
 			log.Error(fmt.Errorf("failed to insert; %w", err))
 			return
