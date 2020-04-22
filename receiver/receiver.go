@@ -26,14 +26,16 @@ type Receiver struct {
 	batchTimeout time.Duration
 	storage      string
 	storageCh    chan *proto.Event
+	workerCount  int
 }
 
-func NewReceiver(batchSize int, batchTimeout time.Duration, storage string) *Receiver {
+func NewReceiver(batchSize int, batchTimeout time.Duration, storage string, worker int) *Receiver {
 	return &Receiver{
 		batchSize:    batchSize,
 		batchTimeout: batchTimeout,
 		storage:      storage,
 		storageCh:    make(chan *proto.Event, batchSize),
+		workerCount:  worker,
 	}
 }
 

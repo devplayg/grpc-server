@@ -30,7 +30,6 @@ func (s *grpcService) Send(ctx context.Context, req *proto.Event) (*proto.Respon
 			stats.Add("worker", -1)
 			<-s.ch
 		}()
-
 		if err := s.classifier.save(req); err != nil {
 			log.Error(err)
 			return

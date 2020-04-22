@@ -4,7 +4,6 @@ import (
 	"expvar"
 	"fmt"
 	grpc_server "github.com/devplayg/grpc-server"
-	"github.com/devplayg/grpc-server/proto"
 	"github.com/devplayg/hippo/v2"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jinzhu/gorm"
@@ -29,7 +28,6 @@ type Classifier struct {
 	batchSize      int
 	batchTimeout   time.Duration
 	storage        string
-	eventCh        chan *proto.Event
 	workerCount    int
 
 	// Database
@@ -47,7 +45,6 @@ func NewClassifier(batchSize int, batchTimeout time.Duration, worker int) *Class
 	return &Classifier{
 		batchSize:    batchSize,
 		batchTimeout: batchTimeout,
-		eventCh:      make(chan *proto.Event, batchSize),
 		workerCount:  worker,
 	}
 }

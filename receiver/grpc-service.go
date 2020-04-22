@@ -17,6 +17,7 @@ type grpcService struct {
 	classifier *classifier
 	storageCh  chan<- *proto.Event
 	once       sync.Once
+	ch         chan bool
 }
 
 func (s *grpcService) Send(ctx context.Context, req *proto.Event) (*proto.Response, error) {
@@ -24,12 +25,15 @@ func (s *grpcService) Send(ctx context.Context, req *proto.Event) (*proto.Respon
 		stats.Get("start").(*expvar.Int).Set(time.Now().UnixNano())
 	})
 
+	s.ch <- true
 	stats.Add("worker", 1)
 	go func() {
 		log.Trace("sending")
 		defer func() {
-			log.Trace("done")
+			log.Trace("sending done")
+			stats.Get("end").(*expvar.Int).Set(time.Now().UnixNano())
 			stats.Add("worker", -1)
+			<-s.ch
 		}()
 		if err := s.relayToClassifier(req); err != nil {
 			s.storageCh <- req
@@ -41,15 +45,9 @@ func (s *grpcService) Send(ctx context.Context, req *proto.Event) (*proto.Respon
 		for _, f := range req.Body.Files {
 			size += int64(len(f.Data))
 		}
-
 		stats.Add("size", size)
 		stats.Add("relayed", 1)
-		stats.Get("end").(*expvar.Int).Set(time.Now().UnixNano())
 	}()
-
-	// return nil, status.Errorf(codes.OutOfRange, "err")
-	// status.Error(codes.NotFound, "id was not found")
-	// return nil, err
 
 	return &proto.Response{}, nil
 }
