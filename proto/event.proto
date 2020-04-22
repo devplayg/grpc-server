@@ -10,7 +10,9 @@ service EventService {
     }
     rpc SendHeader (EventHeader) returns (Response) {
     }
-    rpc ResetStats (google.protobuf.Empty) returns (google.protobuf.Empty) {
+    rpc ResetDebug (google.protobuf.Empty) returns (google.protobuf.Empty) {
+    }
+    rpc Debug (google.protobuf.Empty) returns (DebugMessage) {
     }
 }
 
@@ -43,6 +45,10 @@ message File {
     google.protobuf.Timestamp time = 2;
     int32 category = 3;
     bytes data = 4;
+}
+
+message DebugMessage {
+    string message = 1;
 }
 
 message Response {

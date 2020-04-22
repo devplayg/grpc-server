@@ -3,6 +3,7 @@ package classifier
 import (
 	"context"
 	"expvar"
+	"fmt"
 	"github.com/devplayg/grpc-server/proto"
 	"github.com/golang/protobuf/ptypes/empty"
 	"sync"
@@ -42,7 +43,27 @@ func (s *grpcService) SendHeader(ctx context.Context, req *proto.EventHeader) (*
 	return &proto.Response{}, nil
 }
 
-func (s *grpcService) ResetStats(ctx context.Context, req *empty.Empty) (*empty.Empty, error) {
+func (s *grpcService) ResetDebug(ctx context.Context, req *empty.Empty) (*empty.Empty, error) {
 	resetStats()
 	return &empty.Empty{}, nil
+}
+
+func (s *grpcService) Debug(ctx context.Context, req *empty.Empty) (*proto.DebugMessage, error) {
+	duration := (stats.Get("end").(*expvar.Int).Value() - stats.Get("start").(*expvar.Int).Value()) / int64(time.Millisecond)
+	insertedTime := stats.Get("inserted-time").(*expvar.Int).Value()
+	uploadedTime := stats.Get("uploaded-time").(*expvar.Int).Value()
+	uploadedSize := stats.Get("uploaded-size").(*expvar.Int).Value()
+	uploaded := stats.Get("uploaded").(*expvar.Int).Value()
+
+	str := fmt.Sprintf("%d\t%d\t%d\t%d\t%d",
+		uploaded,
+		duration,
+		uploadedSize,
+		insertedTime,
+		uploadedTime,
+	)
+
+	return &proto.DebugMessage{
+		Message: str,
+	}, nil
 }

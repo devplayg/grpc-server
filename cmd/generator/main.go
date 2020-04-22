@@ -15,7 +15,6 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
-	"strings"
 	"sync"
 
 	"time"
@@ -25,10 +24,12 @@ var (
 	fs         = pflag.NewFlagSet("generator", pflag.ExitOnError)
 	agentCount = fs.IntP("agent", "a", 10, "Client count")
 	dataCount  = fs.IntP("c", "c", 1, "Event count by client")
-	receiver   = fs.String("recv", "localhost:8801", "Receiver address")
-	classifier = fs.String("classy", "localhost:8802", "Classifier address")
+	addr       = fs.String("addr", "localhost:8801", "Receiver address")
 	devices    []string
 	images     [][]byte
+
+	conn      *grpc.ClientConn
+	clientApi proto.EventServiceClient
 )
 
 func init() {
@@ -52,6 +53,34 @@ func init() {
 	}
 }
 
+func main() {
+	// Generate sample data
+	data := generateData()
+
+	// Connect to receiver
+	conn, clientApi = connect()
+	defer conn.Close()
+
+	// Reset debug
+	clientApi.ResetDebug(context.Background(), &empty.Empty{})
+
+	// Run
+	wg := new(sync.WaitGroup)
+	started := time.Now()
+	for i := 0; i < *agentCount; i++ {
+		wg.Add(1)
+		k := int32(i)
+		go send(wg, data[k])
+	}
+	wg.Wait()
+
+	dur := time.Since(started)
+	fmt.Printf("agent=%d, totalData=%d, time=%d\n", *agentCount, (*agentCount)*(*dataCount), dur.Milliseconds())
+
+	startHttpServer(*agentCount, *dataCount, dur)
+	fmt.Scanln()
+}
+
 func generateData() map[int32][]*proto.Event {
 	data := make(map[int32][]*proto.Event)
 	for a := 0; a < *agentCount; a++ {
@@ -64,29 +93,7 @@ func generateData() map[int32][]*proto.Event {
 	return data
 }
 
-func main() {
-	data := generateData()
-	wg := new(sync.WaitGroup)
-
-	// Reset
-	reset()
-
-	started := time.Now()
-	for i := 0; i < *agentCount; i++ {
-		wg.Add(1)
-		k := int32(i)
-		go send(wg, data[k])
-	}
-
-	wg.Wait()
-	dur := time.Since(started)
-	fmt.Printf("agent=%d, totalData=%d, time=%d\n", *agentCount, (*agentCount)*(*dataCount), dur.Milliseconds())
-
-	startHttpServer(*agentCount, *dataCount, dur)
-	fmt.Scanln()
-}
-
-func reset() {
+func connect() (*grpc.ClientConn, proto.EventServiceClient) {
 	config := &tls.Config{
 		InsecureSkipVerify: true,
 	}
@@ -96,41 +103,40 @@ func reset() {
 	}
 
 	// Create connection
-	conn, err := grpc.Dial(*receiver, opts...)
+	conn, err := grpc.Dial(*addr, opts...)
 	if err != nil {
 		panic(err)
 	}
-	defer conn.Close()
 
 	// Create client API for service
 	clientApi := proto.NewEventServiceClient(conn)
+	return conn, clientApi
 
-	// gRPC remote procedure call
-	_, err = clientApi.ResetStats(context.Background(), &empty.Empty{})
-	if err != nil {
-		panic(err)
-	}
 }
 
 func startHttpServer(agentCount, dataCountByAgent int, dur time.Duration) {
 	http.HandleFunc("/stats", func(w http.ResponseWriter, r *http.Request) {
-		arr1 := strings.Split(*receiver, ":")
-		arr2 := strings.Split(*classifier, ":")
-		receiverUrl := fmt.Sprintf("http://%s:8123/stats", arr1[0])
-		classifierUrl := fmt.Sprintf("http://%s:8124/stats", arr2[0])
 
-		s := fmt.Sprintf("%d\t%d\t%d\t%d\t%s\t%s",
+		debugMessage, err := clientApi.Debug(context.Background(), &empty.Empty{})
+		if err != nil {
+			fmt.Println(err.Error())
+			return
+		}
+
+		//arr := strings.Split(*addr, ":")
+		//receiverUrl := fmt.Sprintf("http://%s:8123/stats", arr[0])
+
+		s := fmt.Sprintf("%d\t%d\t%d\t%d\t%s",
 			agentCount,
 			dataCountByAgent,
 			agentCount*dataCountByAgent,
 			dur.Milliseconds(),
-			getRemoteStats(receiverUrl),
-			getRemoteStats(classifierUrl),
+			debugMessage.Message,
 		)
 		w.Write([]byte(s))
 	})
 
-	go http.ListenAndServe("127.0.0.1:8120", nil)
+	go http.ListenAndServe("127.0.0.1:8123", nil)
 }
 
 func getRemoteStats(url string) string {
@@ -161,7 +167,7 @@ func send(wg *sync.WaitGroup, events []*proto.Event) {
 	}
 
 	// Create connection
-	conn, err := grpc.Dial(*receiver, opts...)
+	conn, err := grpc.Dial(*addr, opts...)
 	if err != nil {
 		panic(err)
 	}
@@ -186,9 +192,6 @@ func generateEvent(deviceCode string) *proto.Event {
 		Seconds: now.Unix(),
 		Nanos:   int32(now.Nanosecond()),
 	}
-
-	//data := make([]byte, 16)
-	//rand.Read(data)
 
 	return &proto.Event{
 		Header: &proto.EventHeader{

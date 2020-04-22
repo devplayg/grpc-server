@@ -7,7 +7,6 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	"github.com/minio/minio-go"
-	"net/http"
 	"net/url"
 	"strings"
 	"time"
@@ -133,31 +132,31 @@ func resetStats() {
 
 func (c *Classifier) initMonitor() error {
 	resetStats()
-
-	http.HandleFunc("/stats", func(w http.ResponseWriter, r *http.Request) {
-		m := map[string]interface{}{
-			"duration":      (stats.Get("end").(*expvar.Int).Value() - stats.Get("start").(*expvar.Int).Value()) / int64(time.Millisecond),
-			"inserted-time": stats.Get("inserted-time").(*expvar.Int).Value(),
-			"uploaded-time": stats.Get("uploaded-time").(*expvar.Int).Value(),
-			"uploaded-size": stats.Get("uploaded-size").(*expvar.Int).Value(),
-			"uploaded":      stats.Get("uploaded").(*expvar.Int).Value(),
-		}
-
-		s := fmt.Sprintf("%d\t%d\t%d\t%d\t%d",
-			m["uploaded"],
-			m["duration"],
-			m["uploaded-size"],
-			m["inserted-time"],
-			m["uploaded-time"],
-		)
-		//dur := stats.Get("end").(*expvar.Int).Value() - stats.Get("start").(*expvar.Int).Value()
-		//m["relayed-time"] = dur / int64(time.Millisecond)
-		//m["relayed"] = stats.Get("relayed").(*expvar.Int).Value()
-		//b, _ := json.MarshalIndent(m, "", "  ")
-		w.Write([]byte(s))
-	})
-
-	go http.ListenAndServe(":8124", nil)
+	//
+	//http.HandleFunc("/stats", func(w http.ResponseWriter, r *http.Request) {
+	//	m := map[string]interface{}{
+	//		"duration":      (stats.Get("end").(*expvar.Int).Value() - stats.Get("start").(*expvar.Int).Value()) / int64(time.Millisecond),
+	//		"inserted-time": stats.Get("inserted-time").(*expvar.Int).Value(),
+	//		"uploaded-time": stats.Get("uploaded-time").(*expvar.Int).Value(),
+	//		"uploaded-size": stats.Get("uploaded-size").(*expvar.Int).Value(),
+	//		"uploaded":      stats.Get("uploaded").(*expvar.Int).Value(),
+	//	}
+	//
+	//	s := fmt.Sprintf("%d\t%d\t%d\t%d\t%d",
+	//		m["uploaded"],
+	//		m["duration"],
+	//		m["uploaded-size"],
+	//		m["inserted-time"],
+	//		m["uploaded-time"],
+	//	)
+	//	//dur := stats.Get("end").(*expvar.Int).Value() - stats.Get("start").(*expvar.Int).Value()
+	//	//m["relayed-time"] = dur / int64(time.Millisecond)
+	//	//m["relayed"] = stats.Get("relayed").(*expvar.Int).Value()
+	//	//b, _ := json.MarshalIndent(m, "", "  ")
+	//	w.Write([]byte(s))
+	//})
+	//
+	//go http.ListenAndServe(":8124", nil)
 
 	return nil
 }

@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"github.com/devplayg/grpc-server/proto"
 	"github.com/golang/protobuf/ptypes/empty"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/connectivity"
+	"google.golang.org/grpc/status"
 	"sync"
 	"time"
 )
@@ -52,9 +54,25 @@ func (s *grpcService) SendHeader(ctx context.Context, req *proto.EventHeader) (*
 	return &proto.Response{}, nil
 }
 
-func (s *grpcService) ResetStats(ctx context.Context, req *empty.Empty) (*empty.Empty, error) {
+func (s *grpcService) ResetDebug(ctx context.Context, req *empty.Empty) (*empty.Empty, error) {
 	resetStats()
-	return s.classifier.clientApi.ResetStats(context.Background(), &empty.Empty{})
+	return s.classifier.clientApi.ResetDebug(context.Background(), &empty.Empty{})
+}
+
+func (s *grpcService) Debug(ctx context.Context, req *empty.Empty) (*proto.DebugMessage, error) {
+	debug, err := s.classifier.clientApi.Debug(context.Background(), &empty.Empty{})
+	if err != nil {
+		return nil, status.Errorf(codes.Aborted, "method Send not implemented")
+	}
+
+	duration := (stats.Get("end").(*expvar.Int).Value() - stats.Get("start").(*expvar.Int).Value()) / int64(time.Millisecond)
+	relayed := stats.Get("relayed").(*expvar.Int).Value()
+	size := stats.Get("size").(*expvar.Int).Value()
+
+	str := fmt.Sprintf("%d\t%d\t%d", relayed, duration, size)
+	return &proto.DebugMessage{
+		Message: fmt.Sprintf("%s\t%s", str, debug.Message),
+	}, nil
 }
 
 func (s *grpcService) relayToClassifier(req *proto.Event) error {

@@ -4,7 +4,6 @@ import (
 	"expvar"
 	"fmt"
 	grpc_server "github.com/devplayg/grpc-server"
-	"net/http"
 	"os"
 	"time"
 )
@@ -61,18 +60,18 @@ func (r *Receiver) initCredentials() error {
 
 func (r *Receiver) initMonitor() error {
 	resetStats()
-
-	http.HandleFunc("/stats", func(w http.ResponseWriter, r *http.Request) {
-		m := map[string]interface{}{
-			"duration": (stats.Get("end").(*expvar.Int).Value() - stats.Get("start").(*expvar.Int).Value()) / int64(time.Millisecond),
-			"relayed":  stats.Get("relayed").(*expvar.Int).Value(),
-			"size":     stats.Get("size").(*expvar.Int).Value(),
-		}
-		s := fmt.Sprintf("%d\t%d\t%d", m["relayed"], m["duration"], m["size"])
-		w.Write([]byte(s))
-	})
-
-	go http.ListenAndServe(":8123", nil)
+	//
+	//http.HandleFunc("/stats", func(w http.ResponseWriter, r *http.Request) {
+	//	m := map[string]interface{}{
+	//		"duration": (stats.Get("end").(*expvar.Int).Value() - stats.Get("start").(*expvar.Int).Value()) / int64(time.Millisecond),
+	//		"relayed":  stats.Get("relayed").(*expvar.Int).Value(),
+	//		"size":     stats.Get("size").(*expvar.Int).Value(),
+	//	}
+	//	s := fmt.Sprintf("%d\t%d\t%d", m["relayed"], m["duration"], m["size"])
+	//	w.Write([]byte(s))
+	//})
+	//
+	//go http.ListenAndServe(":8123", nil)
 
 	return nil
 }
