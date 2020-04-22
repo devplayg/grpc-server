@@ -2,7 +2,6 @@ package classifier
 
 import (
 	"bytes"
-	"expvar"
 	"fmt"
 	"github.com/devplayg/grpc-server/entity"
 	"github.com/devplayg/grpc-server/proto"
@@ -32,9 +31,6 @@ func (e EventWrapper) entity() *entity.Log {
 }
 
 func (c *Classifier) save(event *proto.Event) error {
-	c.once.Do(func() {
-		stats.Get("start").(*expvar.Int).Set(time.Now().UnixNano())
-	})
 	deviceId, _ := c.deviceCodeMap[event.Header.DeviceCode]
 	eventWrapper := &EventWrapper{
 		event:    event,
@@ -43,19 +39,18 @@ func (c *Classifier) save(event *proto.Event) error {
 	}
 
 	wg := new(sync.WaitGroup)
+
+	// Save header
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		//if err := c.db.Create(&event).Error; err != nil {
-		//	log.Error(fmt.Errorf("failed to insert; %w", err))
-		//	return
-		//}
 		if err := c.saveHeader(eventWrapper); err != nil {
 			log.Error(fmt.Errorf("failed to insert; %w", err))
 			return
 		}
 	}()
 
+	// Save body
 	wg.Add(1)
 	go func() {
 		defer func() {
@@ -68,9 +63,10 @@ func (c *Classifier) save(event *proto.Event) error {
 			return
 		}
 	}()
+
+	// Wait
 	wg.Wait()
 
-	stats.Get("end").(*expvar.Int).Set(time.Now().UnixNano())
 	return nil
 }
 
