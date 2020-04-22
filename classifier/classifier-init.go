@@ -29,7 +29,7 @@ func (c *Classifier) init() error {
 	c.config = config
 
 	// Initialize database
-	if err := c.initDatabase(4, 4); err != nil {
+	if err := c.initDatabase(c.workerCount+4, c.workerCount+4); err != nil {
 		return fmt.Errorf("failed to initialize database; %w", err)
 	}
 
