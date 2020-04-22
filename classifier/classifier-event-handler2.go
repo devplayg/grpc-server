@@ -115,7 +115,6 @@ func (c *Classifier) saveHeader(event *EventWrapper) error {
 }
 
 func (c *Classifier) saveBody(e *EventWrapper) error {
-	//started := time.Now()
 	var total int64
 
 	r := bytes.NewReader(nil)

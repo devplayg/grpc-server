@@ -21,9 +21,13 @@ func (s *grpcService) Send(ctx context.Context, req *proto.Event) (*proto.Respon
 		stats.Get("start").(*expvar.Int).Set(time.Now().UnixNano())
 	})
 
+	stats.Add("worker", 1)
 	go func() {
 		log.Trace("sending")
-		defer log.Trace("done")
+		defer func() {
+			log.Trace("done")
+			stats.Add("worker", -1)
+		}()
 		if err := s.relayToClassifier(req); err != nil {
 			s.storageCh <- req
 			log.Error("failed to relay request  to classifier")

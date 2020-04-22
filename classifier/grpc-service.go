@@ -21,9 +21,11 @@ func (s *grpcService) Send(ctx context.Context, req *proto.Event) (*proto.Respon
 	})
 
 	s.ch <- true
+	stats.Add("worker", 1)
 	go func() {
 		defer func() {
 			stats.Get("end").(*expvar.Int).Set(time.Now().UnixNano())
+			stats.Add("worker", -1)
 			<-s.ch
 		}()
 
