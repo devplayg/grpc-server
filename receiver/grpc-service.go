@@ -22,6 +22,8 @@ func (s *grpcService) Send(ctx context.Context, req *proto.Event) (*proto.Respon
 	})
 
 	go func() {
+		log.Trace("sending")
+		defer log.Trace("done")
 		if err := s.relayToClassifier(req); err != nil {
 			s.storageCh <- req
 			log.Error("failed to relay request  to classifier")
