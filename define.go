@@ -42,6 +42,7 @@ func ResetServerStats(extras ...string) {
 	ServerStats.Set(StatsCount, new(expvar.Int))
 	ServerStats.Set(StatsSize, new(expvar.Int))
 	ServerStats.Set(StatsWorker, new(expvar.Int))
+	ServerStats.Set(StatsWorkingTime, new(expvar.Int))
 
 	for _, e := range extras {
 		ServerStats.Set(e, new(expvar.Int))

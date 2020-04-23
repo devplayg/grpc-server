@@ -4,6 +4,7 @@ import (
 	"context"
 	"expvar"
 	"fmt"
+	"github.com/davecgh/go-spew/spew"
 	grpc_server "github.com/devplayg/grpc-server"
 	"github.com/devplayg/grpc-server/proto"
 	"github.com/golang/protobuf/ptypes/empty"
@@ -67,6 +68,7 @@ func (s *grpcService) GetServerStats(ctx context.Context, req *empty.Empty) (*pr
 	if err != nil {
 		return nil, status.Errorf(codes.Aborted, "method Send not implemented")
 	}
+	spew.Dump(classifierStats)
 	return &proto.ServerStats{
 		StartTimeUnixNano:     grpc_server.ServerStats.Get(grpc_server.StatsInitialProcessing).(*expvar.Int).Value(),
 		EndTimeUnixNano:       grpc_server.ServerStats.Get(grpc_server.StatsLastProcessing).(*expvar.Int).Value(),

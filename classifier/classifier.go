@@ -1,7 +1,6 @@
 package classifier
 
 import (
-	"expvar"
 	"fmt"
 	grpc_server "github.com/devplayg/grpc-server"
 	"github.com/devplayg/hippo/v2"
@@ -10,12 +9,16 @@ import (
 	"github.com/minio/minio-go"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
+	"runtime"
 	"time"
 )
 
 var (
-	log   *logrus.Logger
-	stats *expvar.Map
+	log *logrus.Logger
+)
+
+const (
+	DefaultAddress = "127.0.0.1:8802"
 )
 
 // Classifier receives data from receiver via gRPC framework
@@ -42,10 +45,15 @@ type Classifier struct {
 }
 
 func NewClassifier(batchSize int, batchTimeout time.Duration, worker int) *Classifier {
+	workerCount := runtime.NumCPU() * 2
+	if worker > 0 {
+		workerCount = worker
+	}
+
 	return &Classifier{
 		batchSize:    batchSize,
 		batchTimeout: batchTimeout,
-		workerCount:  worker,
+		workerCount:  workerCount,
 	}
 }
 

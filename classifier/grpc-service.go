@@ -53,11 +53,12 @@ func (s *grpcService) ResetDebug(ctx context.Context, req *empty.Empty) (*empty.
 
 func (s *grpcService) GetServerStats(ctx context.Context, req *empty.Empty) (*proto.ServerStats, error) {
 	return &proto.ServerStats{
-		StartTimeUnixNano: grpc_server.ServerStats.Get(grpc_server.StatsInitialProcessing).(*expvar.Int).Value(),
-		EndTimeUnixNano:   grpc_server.ServerStats.Get(grpc_server.StatsLastProcessing).(*expvar.Int).Value(),
-		Count:             grpc_server.ServerStats.Get(grpc_server.StatsCount).(*expvar.Int).Value(),
-		Size:              grpc_server.ServerStats.Get(grpc_server.StatsSize).(*expvar.Int).Value(),
-		Worker:            int32(grpc_server.ServerStats.Get(grpc_server.StatsWorker).(*expvar.Int).Value()),
-		Meta:              fmt.Sprintf("%d", grpc_server.ServerStats.Get(statsInsertingTime).(*expvar.Int).Value()),
+		StartTimeUnixNano:     grpc_server.ServerStats.Get(grpc_server.StatsInitialProcessing).(*expvar.Int).Value(),
+		EndTimeUnixNano:       grpc_server.ServerStats.Get(grpc_server.StatsLastProcessing).(*expvar.Int).Value(),
+		Count:                 grpc_server.ServerStats.Get(grpc_server.StatsCount).(*expvar.Int).Value(),
+		Size:                  grpc_server.ServerStats.Get(grpc_server.StatsSize).(*expvar.Int).Value(),
+		Worker:                int32(grpc_server.ServerStats.Get(grpc_server.StatsWorker).(*expvar.Int).Value()),
+		TotalWorkingTimeMilli: grpc_server.ServerStats.Get(grpc_server.StatsWorkingTime).(*expvar.Int).Value(),
+		Meta:                  fmt.Sprintf("%d", grpc_server.ServerStats.Get(statsInsertingTime).(*expvar.Int).Value()),
 	}, nil
 }

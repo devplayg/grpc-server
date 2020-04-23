@@ -16,7 +16,7 @@ import (
 	"net/http"
 	"os"
 	"sync"
-
+	"sync/atomic"
 	"time"
 )
 
@@ -31,6 +31,8 @@ var (
 
 	conn      *grpc.ClientConn
 	clientApi proto.EventServiceClient
+
+	size uint64
 )
 
 func init() {
@@ -127,14 +129,20 @@ func startHttpServer(dur time.Duration) {
 			return
 		}
 
-		s := fmt.Sprintf("%d\t%d\t%d\t%d\t%d\t%d\t%d\t%s",
+		s := fmt.Sprintf("%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%s",
 			*agentCount,
 			*dataCount,
+
+			// Receiver
 			(*agentCount)*(*dataCount),
 			dur.Milliseconds(),
+			size,
+
+			// Classifier stats
 			stats.Count,
 			(stats.EndTimeUnixNano-stats.StartTimeUnixNano)/int64(time.Millisecond),
 			stats.Size,
+
 			stats.Meta,
 		)
 		w.Write([]byte(s))
@@ -174,6 +182,9 @@ func send(wg *sync.WaitGroup, events []*proto.Event) {
 
 	// gRPC remote procedure call
 	for _, e := range events {
+		for _, f := range e.Body.Files {
+			atomic.AddUint64(&size, uint64(len(f.Data)))
+		}
 		_, err = clientApi.Send(context.Background(), e)
 		if err != nil {
 			fmt.Printf("[error] %s\n", err.Error())
