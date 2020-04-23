@@ -27,7 +27,8 @@ var (
 	batchSize    = fs.Int("batchsize", 10000, "Batch size")
 	batchTimeout = fs.Int("batchtime", 1000, "Batch timeout, in milliseconds")
 	worker       = fs.Int("worker", 0, "Worker count")
-	//monitor      = fs.String("monitor", ":8123", "Monitor address")
+	monitor      = fs.Bool("mon", false, "Monitoring operation on HTTP")
+	monitorAddr  = fs.String("monaddr", ":8901", "Monitoring address")
 )
 
 func main() {
@@ -45,7 +46,7 @@ func main() {
 	if *verbose {
 		config.LogDir = ""
 	}
-	server := receiver.NewReceiver(*batchSize, time.Duration(*batchTimeout)*time.Millisecond, *worker)
+	server := receiver.NewReceiver(*batchSize, time.Duration(*batchTimeout)*time.Millisecond, *worker, *monitor, *monitorAddr)
 	engine := hippo.NewEngine(server, &config)
 	if err := engine.Start(); err != nil {
 		panic(err)

@@ -21,7 +21,7 @@ func (c *Classifier) init() error {
 		return fmt.Errorf("failed to load configuration")
 	}
 	if len(config.App.Classifier.Address) < 1 {
-		config.App.Classifier.Address = "127.0.0.1:8802"
+		config.App.Classifier.Address = DefaultAddress
 	}
 	c.config = config
 

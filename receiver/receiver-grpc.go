@@ -33,9 +33,19 @@ func (r *Receiver) startGrpcServer(storageCh chan<- *proto.Event) error {
 	proto.RegisterEventServiceServer(r.gRpcServer, service)
 
 	// Run
-	if err := r.gRpcServer.Serve(ln); err != nil {
-		return err
-	}
+	ch := make(chan bool)
+	go func() {
+		defer close(ch)
+		if err := r.gRpcServer.Serve(ln); err != nil {
+			log.Error(err)
+			r.Cancel()
+			return
+		}
+	}()
+
+	<-r.Ctx.Done()
+	r.gRpcServer.Stop()
+	<-ch
 	return nil
 }
 

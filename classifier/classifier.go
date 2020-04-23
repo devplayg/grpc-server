@@ -18,7 +18,8 @@ var (
 )
 
 const (
-	DefaultAddress = "127.0.0.1:8802"
+	DefaultAddress        = ":8802"
+	DefaultMonitorAddress = ":8902"
 )
 
 // Classifier receives data from receiver via gRPC framework

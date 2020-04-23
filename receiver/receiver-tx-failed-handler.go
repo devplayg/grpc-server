@@ -9,7 +9,10 @@ import (
 )
 
 func (r *Receiver) handleTxFailedEvent() error {
+	ch := make(chan bool)
 	go func() {
+		defer close(ch)
+
 		batch := make([]*proto.Event, 0, r.batchSize)
 		timer := time.NewTimer(r.batchTimeout)
 		timer.Stop()
@@ -43,10 +46,9 @@ func (r *Receiver) handleTxFailedEvent() error {
 					save()
 				}
 			case <-r.Ctx.Done():
-				log.Debug("storage channel is done")
+				// log.Debug("Failed event handler has been stopped")
 				if len(batch) > 0 {
 					save()
-					return
 				}
 				return
 			case <-timer.C:
@@ -54,6 +56,6 @@ func (r *Receiver) handleTxFailedEvent() error {
 			}
 		}
 	}()
-
+	<-ch
 	return nil
 }

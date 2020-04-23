@@ -1,6 +1,7 @@
 package receiver
 
 import (
+	"context"
 	"fmt"
 	grpc_server "github.com/devplayg/grpc-server"
 	"github.com/devplayg/grpc-server/classifier"
@@ -10,16 +11,13 @@ import (
 
 func (r *Receiver) init() error {
 	log = r.Log
+	grpc_server.ResetServerStats()
 
 	if err := r.loadConfig(); err != nil {
 		return err
 	}
 
 	if err := r.initCredentials(); err != nil {
-		return err
-	}
-
-	if err := r.initMonitor(); err != nil {
 		return err
 	}
 
@@ -60,10 +58,30 @@ func (r *Receiver) initCredentials() error {
 	return nil
 }
 
-func (r *Receiver) initMonitor() error {
-	grpc_server.ResetServerStats()
+func (r *Receiver) startMonitor() error {
+	srv := http.Server{
+		Addr: r.monitorAddr,
+	}
+	ch := make(chan bool)
 
-	go http.ListenAndServe(":8123", nil)
+	go func() {
+		defer close(ch)
+		<-r.Ctx.Done()
+		if err := srv.Shutdown(context.Background()); err != nil {
+			log.Error(err)
+			return
+		}
+	}()
 
+	go func() {
+		log.Debug("monitoring service has been started")
+		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
+			log.Error(err)
+			r.Cancel()
+			return
+		}
+	}()
+	<-ch
+	log.Debug("monitoring service has been stopped")
 	return nil
 }
