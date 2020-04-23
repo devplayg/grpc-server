@@ -12,7 +12,7 @@ service EventService {
     }
     rpc ResetDebug (google.protobuf.Empty) returns (google.protobuf.Empty) {
     }
-    rpc Debug (google.protobuf.Empty) returns (DebugMessage) {
+    rpc GetServerStats (google.protobuf.Empty) returns (ServerStats) {
     }
 }
 
@@ -38,6 +38,16 @@ message EventHeader {
         Event5 = 5;
     }
     EventType eventType = 4;
+}
+
+message ServerStats {
+    int64 start_time_unix_nano = 1;
+    int64 end_time_unix_nano = 2;
+    int64 count = 3;
+    int64 size = 4;
+    int32 worker = 5;
+    int64 total_working_time_milli = 6;
+    string meta = 7;
 }
 
 message File {
