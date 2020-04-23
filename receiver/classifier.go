@@ -10,23 +10,37 @@ import (
 	"google.golang.org/grpc/keepalive"
 )
 
-type classifier struct {
+type classifierClient struct {
 	gRpcClient proto.EventServiceClient
 	address    string
 	log        *logrus.Logger
 	conn       *grpc.ClientConn
-	clientApi  proto.EventServiceClient
+	api        proto.EventServiceClient
 	insecure   bool
 }
 
-func newClassifier(addr string, insecure bool) *classifier {
-	return &classifier{
+func newClassifierClient(addr string, insecure bool) *classifierClient {
+	return &classifierClient{
 		address:  addr,
 		insecure: insecure,
 	}
 }
 
-func (c *classifier) connect() error {
+func (c *classifierClient) connect() error {
+	conn, err := grpc.Dial(c.address, c.getGrpcDialOptions()...)
+	if err != nil {
+		return err
+	}
+
+	// Create connection
+	c.conn = conn
+
+	// Create client API for service
+	c.api = proto.NewEventServiceClient(c.conn)
+	return nil
+}
+
+func (c *classifierClient) getGrpcDialOptions() []grpc.DialOption {
 	opts := []grpc.DialOption{
 		grpc.WithKeepaliveParams(keepalive.ClientParameters{
 			// Time:                10 * time.Second, // send pings every 10 seconds if there is no activity
@@ -39,6 +53,7 @@ func (c *classifier) connect() error {
 		}),
 	}
 
+	// Option for insecure mode
 	if !c.insecure {
 		config := &tls.Config{
 			InsecureSkipVerify: true,
@@ -48,18 +63,10 @@ func (c *classifier) connect() error {
 		opts = append(opts, grpc.WithInsecure())
 	}
 
-	conn, err := grpc.Dial(c.address, opts...)
-	if err != nil {
-		return err
-	}
-	c.conn = conn
-
-	// Create client API for service
-	c.clientApi = proto.NewEventServiceClient(c.conn)
-	return nil
+	return opts
 }
 
-func (c *classifier) disconnect() error {
+func (c *classifierClient) disconnect() error {
 	if c.conn != nil {
 		if err := c.conn.Close(); err != nil {
 			return err

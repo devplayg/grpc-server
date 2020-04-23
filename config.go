@@ -19,6 +19,7 @@ type Config struct {
 		// Receiver
 		Receiver struct {
 			Insecure   bool
+			StorageDir string `json:"storage-dir"`
 			Address    string
 			Classifier struct {
 				Address string
@@ -68,26 +69,6 @@ func LoadConfig() (*Config, error) {
 			return nil, fmt.Errorf("failed to read configuration file: %w", err)
 		}
 		return config, nil
-
-		//config, err := readSpringBootConfig(p)
-		//if err != nil {
-		//	return nil, err
-		//}
-
-		//if config.App.VmsServer == nil {
-		//	return nil, errors.New("VMS-configuration not found")
-		//}
-
-		//if config.App.VmsServer == nil {
-		//	return nil, errors.New("VAS-configuration not found")
-		//}
-
-		//config.App.VmsServer.Tune()
-		//for _, v := range config.App.VasServer {
-		//	v.Tune()
-		//}
-
-		//return config, nil
 	}
 	return nil, nil
 }

@@ -1,7 +1,6 @@
 package classifier
 
 import (
-	"expvar"
 	"fmt"
 	grpc_server "github.com/devplayg/grpc-server"
 	"github.com/jinzhu/gorm"
@@ -14,9 +13,7 @@ import (
 )
 
 func (c *Classifier) init() error {
-	// Initialize logger
 	log = c.Log
-	stats = expvar.NewMap(c.Engine.Config.Name)
 
 	// Initialize configuration
 	config, err := grpc_server.LoadConfig()
@@ -119,20 +116,20 @@ func ConvertJdbcUrlToGoOrm(str, username, password string) (string, *time.Locati
 	return connStr, loc, nil
 }
 
-func resetStats() {
-	log.Debug("reset stats")
-
-	stats.Set("start", new(expvar.Int))
-	stats.Get("start").(*expvar.Int).Set(time.Now().UnixNano())
-	stats.Set("end", new(expvar.Int))
-	stats.Set("inserted-time", new(expvar.Int))
-	stats.Set("uploaded-time", new(expvar.Int))
-	stats.Set("uploaded-size", new(expvar.Int))
-	stats.Set("uploaded", new(expvar.Int))
-}
+//func resetStats() {
+//	log.Debug("reset stats")
+//
+//	stats.Set("start", new(expvar.Int))
+//	stats.Get("start").(*expvar.Int).Set(time.Now().UnixNano())
+//	stats.Set("end", new(expvar.Int))
+//	stats.Set("inserted-time", new(expvar.Int))
+//	stats.Set("uploaded-time", new(expvar.Int))
+//	stats.Set("uploaded-size", new(expvar.Int))
+//	stats.Set("uploaded", new(expvar.Int))
+//}
 
 func (c *Classifier) initMonitor() error {
-	resetStats()
+	//resetStats()
 
 	//http.HandleFunc("/stats", func(w http.ResponseWriter, r *http.Request) {
 	//	m := map[string]interface{}{
@@ -157,6 +154,10 @@ func (c *Classifier) initMonitor() error {
 	//	w.Write([]byte(s))
 	//})
 	//
+	//go http.ListenAndServe(":8124", nil)
+
+	grpc_server.ResetServerStats(statsInsertingTime)
+
 	go http.ListenAndServe(":8124", nil)
 
 	return nil

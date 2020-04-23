@@ -1,41 +1,49 @@
 package receiver
 
 import (
-	"expvar"
 	"fmt"
 	grpc_server "github.com/devplayg/grpc-server"
 	"github.com/devplayg/grpc-server/proto"
 	"github.com/devplayg/hippo/v2"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
+	"runtime"
 	"time"
 )
 
+const (
+	DefaultStorageDir = "data"
+	DefaultAddress    = "127.0.0.1:8801"
+)
+
 var (
-	log   *logrus.Logger
-	stats *expvar.Map
+	log *logrus.Logger
 )
 
 // Receiver receives data from agents via gRPC framework
 type Receiver struct {
 	hippo.Launcher
-	config       *grpc_server.Config
-	gRpcServer   *grpc.Server
-	classifier   *classifier
-	batchSize    int
-	batchTimeout time.Duration
-	storage      string
-	storageCh    chan *proto.Event
-	workerCount  int
+	config           *grpc_server.Config
+	gRpcServer       *grpc.Server
+	classifierClient *classifierClient
+	batchSize        int
+	batchTimeout     time.Duration
+	storage          string
+	storageCh        chan *proto.Event
+	workerCount      int
 }
 
-func NewReceiver(batchSize int, batchTimeout time.Duration, storage string, worker int) *Receiver {
+func NewReceiver(batchSize int, batchTimeout time.Duration, worker int) *Receiver {
+	workerCount := runtime.NumCPU() * 2
+	if worker > 0 {
+		workerCount = worker
+	}
+
 	return &Receiver{
 		batchSize:    batchSize,
 		batchTimeout: batchTimeout,
-		storage:      storage,
 		storageCh:    make(chan *proto.Event, batchSize),
-		workerCount:  worker,
+		workerCount:  workerCount,
 	}
 }
 
@@ -45,8 +53,9 @@ func (r *Receiver) Start() error {
 	}
 
 	// Classifier
-	r.classifier = newClassifier(r.config.App.Receiver.Classifier.Address, r.Engine.Config.Insecure)
-	if err := r.classifier.connect(); err != nil {
+	r.classifierClient = newClassifierClient(r.config.App.Receiver.Classifier.Address, r.Engine.Config.Insecure)
+	log.Debugf("connecting to classifier %s", r.config.App.Receiver.Classifier.Address)
+	if err := r.classifierClient.connect(); err != nil {
 		return fmt.Errorf("failed to connect to classifier: %w", err)
 	}
 
@@ -86,8 +95,8 @@ func (r *Receiver) Start() error {
 func (r *Receiver) Stop() error {
 	defer log.Infof("%s has been stopped", r.Engine.Config.Name)
 
-	if r.classifier != nil {
-		if err := r.classifier.disconnect(); err != nil {
+	if r.classifierClient != nil {
+		if err := r.classifierClient.disconnect(); err != nil {
 			log.Error("failed to disconnect classifier")
 		}
 	}

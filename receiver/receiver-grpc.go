@@ -26,9 +26,9 @@ func (r *Receiver) startGrpcServer(storageCh chan<- *proto.Event) error {
 
 	// Register server to gRPC server
 	service := &grpcService{
-		storageCh:  storageCh,
-		classifier: r.classifier,
-		ch:         make(chan bool, r.workerCount),
+		storageCh:        storageCh,
+		classifierClient: r.classifierClient,
+		ch:               make(chan bool, r.workerCount),
 	}
 	proto.RegisterEventServiceServer(r.gRpcServer, service)
 
@@ -86,8 +86,6 @@ func (r *Receiver) getGrpcServerOptions() []grpc.ServerOption {
 		opts = append(opts, grpc.Creds(creds))
 		r.Log.Infof("secured gRPC with %s", creds.Info().SecurityProtocol)
 	}
-
-	// grpc.UnaryInterceptor(grpc_server.UnaryInterceptor),
 
 	return opts
 }

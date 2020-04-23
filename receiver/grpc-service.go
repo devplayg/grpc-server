@@ -4,6 +4,7 @@ import (
 	"context"
 	"expvar"
 	"fmt"
+	grpc_server "github.com/devplayg/grpc-server"
 	"github.com/devplayg/grpc-server/proto"
 	"github.com/golang/protobuf/ptypes/empty"
 	"google.golang.org/grpc/codes"
@@ -14,25 +15,25 @@ import (
 )
 
 type grpcService struct {
-	classifier *classifier
-	storageCh  chan<- *proto.Event
-	once       sync.Once
-	ch         chan bool
+	classifierClient *classifierClient
+	storageCh        chan<- *proto.Event
+	once             sync.Once
+	ch               chan bool
 }
 
 func (s *grpcService) Send(ctx context.Context, req *proto.Event) (*proto.Response, error) {
 	s.once.Do(func() {
-		stats.Get("start").(*expvar.Int).Set(time.Now().UnixNano())
+		// Initial processing time
+		grpc_server.ServerStats.Get(grpc_server.StatsInitialProcessing).(*expvar.Int).Set(time.Now().UnixNano())
 	})
 
 	s.ch <- true
-	stats.Add("worker", 1)
+	grpc_server.ServerStats.Add(grpc_server.StatsWorker, 1)
 	go func() {
-		log.Trace("sending")
 		defer func() {
-			log.Trace("sending done")
-			stats.Get("end").(*expvar.Int).Set(time.Now().UnixNano())
-			stats.Add("worker", -1)
+			// Last  processing time
+			grpc_server.ServerStats.Get(grpc_server.StatsLastProcessing).(*expvar.Int).Set(time.Now().UnixNano())
+			grpc_server.ServerStats.Add(grpc_server.StatsWorker, -1)
 			<-s.ch
 		}()
 		if err := s.relayToClassifier(req); err != nil {
@@ -45,8 +46,8 @@ func (s *grpcService) Send(ctx context.Context, req *proto.Event) (*proto.Respon
 		for _, f := range req.Body.Files {
 			size += int64(len(f.Data))
 		}
-		stats.Add("size", size)
-		stats.Add("relayed", 1)
+		grpc_server.ServerStats.Add(grpc_server.StatsSize, size)
+		grpc_server.ServerStats.Add(grpc_server.StatsCount, 1)
 	}()
 
 	return &proto.Response{}, nil
@@ -57,30 +58,36 @@ func (s *grpcService) SendHeader(ctx context.Context, req *proto.EventHeader) (*
 }
 
 func (s *grpcService) ResetDebug(ctx context.Context, req *empty.Empty) (*empty.Empty, error) {
-	resetStats()
-	return s.classifier.clientApi.ResetDebug(context.Background(), &empty.Empty{})
+	grpc_server.ResetServerStats()
+	return s.classifierClient.api.ResetDebug(context.Background(), &empty.Empty{})
 }
 
-func (s *grpcService) Debug(ctx context.Context, req *empty.Empty) (*proto.DebugMessage, error) {
-	debug, err := s.classifier.clientApi.Debug(context.Background(), &empty.Empty{})
+func (s *grpcService) GetServerStats(ctx context.Context, req *empty.Empty) (*proto.ServerStats, error) {
+	classifierStats, err := s.classifierClient.api.GetServerStats(context.Background(), &empty.Empty{})
 	if err != nil {
 		return nil, status.Errorf(codes.Aborted, "method Send not implemented")
 	}
-
-	duration := (stats.Get("end").(*expvar.Int).Value() - stats.Get("start").(*expvar.Int).Value()) / int64(time.Millisecond)
-	relayed := stats.Get("relayed").(*expvar.Int).Value()
-	size := stats.Get("size").(*expvar.Int).Value()
-
-	str := fmt.Sprintf("%d\t%d\t%d", relayed, duration, size)
-	return &proto.DebugMessage{
-		Message: fmt.Sprintf("%s\t%s", str, debug.Message),
+	return &proto.ServerStats{
+		StartTimeUnixNano:     grpc_server.ServerStats.Get(grpc_server.StatsInitialProcessing).(*expvar.Int).Value(),
+		EndTimeUnixNano:       grpc_server.ServerStats.Get(grpc_server.StatsLastProcessing).(*expvar.Int).Value(),
+		Count:                 grpc_server.ServerStats.Get(grpc_server.StatsCount).(*expvar.Int).Value(),
+		Size:                  grpc_server.ServerStats.Get(grpc_server.StatsSize).(*expvar.Int).Value(),
+		Worker:                int32(grpc_server.ServerStats.Get(grpc_server.StatsWorker).(*expvar.Int).Value()),
+		TotalWorkingTimeMilli: 0,
+		Meta: fmt.Sprintf("%d\t%d\t%d\t%d\t%s",
+			classifierStats.Count,
+			(classifierStats.EndTimeUnixNano-classifierStats.StartTimeUnixNano)/int64(time.Millisecond),
+			classifierStats.Size,
+			classifierStats.TotalWorkingTimeMilli,
+			classifierStats.Meta,
+		),
 	}, nil
 }
 
 func (s *grpcService) relayToClassifier(req *proto.Event) error {
-	if s.classifier.conn.GetState() != connectivity.Ready {
+	if s.classifierClient.conn.GetState() != connectivity.Ready {
 		return fmt.Errorf("connection is not ready")
 	}
-	_, err := s.classifier.clientApi.Send(context.Background(), req)
+	_, err := s.classifierClient.api.Send(context.Background(), req)
 	return err
 }

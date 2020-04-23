@@ -4,11 +4,14 @@ import (
 	"context"
 	"expvar"
 	"fmt"
+	grpc_server "github.com/devplayg/grpc-server"
 	"github.com/devplayg/grpc-server/proto"
 	"github.com/golang/protobuf/ptypes/empty"
 	"sync"
 	"time"
 )
+
+const statsInsertingTime = "inserting-time"
 
 type grpcService struct {
 	notifier   *notifier
@@ -19,15 +22,16 @@ type grpcService struct {
 
 func (s *grpcService) Send(ctx context.Context, req *proto.Event) (*proto.Response, error) {
 	s.once.Do(func() {
-		stats.Get("start").(*expvar.Int).Set(time.Now().UnixNano())
+		// Initial processing time
+		grpc_server.ServerStats.Get(grpc_server.StatsInitialProcessing).(*expvar.Int).Set(time.Now().UnixNano())
 	})
 
 	s.ch <- true
-	stats.Add("worker", 1)
+	grpc_server.ServerStats.Add(grpc_server.StatsWorker, 1)
 	go func() {
 		defer func() {
-			stats.Get("end").(*expvar.Int).Set(time.Now().UnixNano())
-			stats.Add("worker", -1)
+			grpc_server.ServerStats.Get(grpc_server.StatsLastProcessing).(*expvar.Int).Set(time.Now().UnixNano())
+			grpc_server.ServerStats.Add(grpc_server.StatsWorker, -1)
 			<-s.ch
 		}()
 		if err := s.classifier.save(req); err != nil {
@@ -43,26 +47,17 @@ func (s *grpcService) SendHeader(ctx context.Context, req *proto.EventHeader) (*
 }
 
 func (s *grpcService) ResetDebug(ctx context.Context, req *empty.Empty) (*empty.Empty, error) {
-	resetStats()
+	grpc_server.ResetServerStats(statsInsertingTime)
 	return &empty.Empty{}, nil
 }
 
-func (s *grpcService) Debug(ctx context.Context, req *empty.Empty) (*proto.DebugMessage, error) {
-	duration := (stats.Get("end").(*expvar.Int).Value() - stats.Get("start").(*expvar.Int).Value()) / int64(time.Millisecond)
-	insertedTime := stats.Get("inserted-time").(*expvar.Int).Value()
-	uploadedTime := stats.Get("uploaded-time").(*expvar.Int).Value()
-	uploadedSize := stats.Get("uploaded-size").(*expvar.Int).Value()
-	uploaded := stats.Get("uploaded").(*expvar.Int).Value()
-
-	str := fmt.Sprintf("%d\t%d\t%d\t%d\t%d",
-		uploaded,
-		duration,
-		uploadedSize,
-		insertedTime,
-		uploadedTime,
-	)
-
-	return &proto.DebugMessage{
-		Message: str,
+func (s *grpcService) GetServerStats(ctx context.Context, req *empty.Empty) (*proto.ServerStats, error) {
+	return &proto.ServerStats{
+		StartTimeUnixNano: grpc_server.ServerStats.Get(grpc_server.StatsInitialProcessing).(*expvar.Int).Value(),
+		EndTimeUnixNano:   grpc_server.ServerStats.Get(grpc_server.StatsLastProcessing).(*expvar.Int).Value(),
+		Count:             grpc_server.ServerStats.Get(grpc_server.StatsCount).(*expvar.Int).Value(),
+		Size:              grpc_server.ServerStats.Get(grpc_server.StatsSize).(*expvar.Int).Value(),
+		Worker:            int32(grpc_server.ServerStats.Get(grpc_server.StatsWorker).(*expvar.Int).Value()),
+		Meta:              fmt.Sprintf("%d", grpc_server.ServerStats.Get(statsInsertingTime).(*expvar.Int).Value()),
 	}, nil
 }

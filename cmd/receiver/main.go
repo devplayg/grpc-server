@@ -6,7 +6,6 @@ import (
 	"github.com/devplayg/hippo/v2"
 	"github.com/spf13/pflag"
 	"os"
-	"runtime"
 	"time"
 )
 
@@ -17,7 +16,7 @@ const (
 )
 
 var (
-	fs           = pflag.NewFlagSet(appName, pflag.ExitOnError)
+	fs           = pflag.NewFlagSet(appName+" "+appVersion, pflag.ExitOnError)
 	debug        = fs.Bool("debug", false, "Debug") // GODEBUG=http2debug=2
 	trace        = fs.Bool("trace", false, "Trace")
 	verbose      = fs.BoolP("verbose", "v", false, "Verbose")
@@ -27,9 +26,8 @@ var (
 	keyFile      = fs.String("keyFile", "server.key", "SSL Certificate key file")
 	batchSize    = fs.Int("batchsize", 10000, "Batch size")
 	batchTimeout = fs.Int("batchtime", 1000, "Batch timeout, in milliseconds")
-	storage      = fs.String("storage", "data", "Storage path")
 	worker       = fs.Int("worker", 0, "Worker count")
-	// monitor      = fs.String("monitor", ":8123", "Monitor address")
+	//monitor      = fs.String("monitor", ":8123", "Monitor address")
 )
 
 func main() {
@@ -47,12 +45,7 @@ func main() {
 	if *verbose {
 		config.LogDir = ""
 	}
-	workerCount := runtime.NumCPU() * 2
-	if *worker > 0 {
-		workerCount = *worker
-	}
-
-	server := receiver.NewReceiver(*batchSize, time.Duration(*batchTimeout)*time.Millisecond, *storage, workerCount)
+	server := receiver.NewReceiver(*batchSize, time.Duration(*batchTimeout)*time.Millisecond, *worker)
 	engine := hippo.NewEngine(server, &config)
 	if err := engine.Start(); err != nil {
 		panic(err)

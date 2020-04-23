@@ -1,17 +1,15 @@
 package receiver
 
 import (
-	"expvar"
 	"fmt"
 	grpc_server "github.com/devplayg/grpc-server"
+	"github.com/devplayg/grpc-server/classifier"
 	"net/http"
 	"os"
-	"time"
 )
 
 func (r *Receiver) init() error {
 	log = r.Log
-	stats = expvar.NewMap(r.Engine.Config.Name)
 
 	if err := r.loadConfig(); err != nil {
 		return err
@@ -34,10 +32,13 @@ func (r *Receiver) loadConfig() error {
 		return fmt.Errorf("failed to load configuration")
 	}
 	if len(config.App.Receiver.Address) < 1 {
-		config.App.Receiver.Address = "127.0.0.1:8801"
+		config.App.Receiver.Address = DefaultAddress
+	}
+	if len(config.App.Receiver.StorageDir) < 1 {
+		config.App.Receiver.StorageDir = DefaultStorageDir
 	}
 	if len(config.App.Receiver.Classifier.Address) < 1 {
-		config.App.Receiver.Classifier.Address = "127.0.0.1:8802"
+		config.App.Receiver.Classifier.Address = classifier.DefaultAddress
 	}
 
 	r.config = config
@@ -60,29 +61,9 @@ func (r *Receiver) initCredentials() error {
 }
 
 func (r *Receiver) initMonitor() error {
-	resetStats()
-	//
-	//http.HandleFunc("/stats", func(w http.ResponseWriter, r *http.Request) {
-	//	m := map[string]interface{}{
-	//		"duration": (stats.Get("end").(*expvar.Int).Value() - stats.Get("start").(*expvar.Int).Value()) / int64(time.Millisecond),
-	//		"relayed":  stats.Get("relayed").(*expvar.Int).Value(),
-	//		"size":     stats.Get("size").(*expvar.Int).Value(),
-	//	}
-	//	s := fmt.Sprintf("%d\t%d\t%d", m["relayed"], m["duration"], m["size"])
-	//	w.Write([]byte(s))
-	//})
-	//
+	grpc_server.ResetServerStats()
+
 	go http.ListenAndServe(":8123", nil)
 
 	return nil
-}
-
-func resetStats() {
-	log.Debug("reset stats")
-
-	stats.Set("start", new(expvar.Int))
-	stats.Get("start").(*expvar.Int).Set(time.Now().UnixNano())
-	stats.Set("end", new(expvar.Int))
-	stats.Set("relayed", new(expvar.Int))
-	stats.Set("size", new(expvar.Int))
 }

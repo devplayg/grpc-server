@@ -78,7 +78,7 @@ func main() {
 	dur := time.Since(started)
 	fmt.Printf("agent=%d, totalData=%d, time=%d\n", *agentCount, (*agentCount)*(*dataCount), dur.Milliseconds())
 
-	startHttpServer(*agentCount, *dataCount, dur)
+	startHttpServer(dur)
 	fmt.Scanln()
 }
 
@@ -119,29 +119,28 @@ func connect() (*grpc.ClientConn, proto.EventServiceClient) {
 
 }
 
-func startHttpServer(agentCount, dataCountByAgent int, dur time.Duration) {
+func startHttpServer(dur time.Duration) {
 	http.HandleFunc("/stats", func(w http.ResponseWriter, r *http.Request) {
-
-		debugMessage, err := clientApi.Debug(context.Background(), &empty.Empty{})
+		stats, err := clientApi.GetServerStats(context.Background(), &empty.Empty{})
 		if err != nil {
 			fmt.Println(err.Error())
 			return
 		}
 
-		//arr := strings.Split(*addr, ":")
-		//receiverUrl := fmt.Sprintf("http://%s:8123/stats", arr[0])
-
-		s := fmt.Sprintf("%d\t%d\t%d\t%d\t%s",
-			agentCount,
-			dataCountByAgent,
-			agentCount*dataCountByAgent,
+		s := fmt.Sprintf("%d\t%d\t%d\t%d\t%d\t%d\t%d\t%s",
+			*agentCount,
+			*dataCount,
+			(*agentCount)*(*dataCount),
 			dur.Milliseconds(),
-			debugMessage.Message,
+			stats.Count,
+			(stats.EndTimeUnixNano-stats.StartTimeUnixNano)/int64(time.Millisecond),
+			stats.Size,
+			stats.Meta,
 		)
 		w.Write([]byte(s))
 	})
 
-	go http.ListenAndServe("127.0.0.1:8123", nil)
+	go http.ListenAndServe("127.0.0.1:8120", nil)
 }
 
 func send(wg *sync.WaitGroup, events []*proto.Event) {
