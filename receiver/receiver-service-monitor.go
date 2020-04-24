@@ -9,9 +9,7 @@ import (
 	"time"
 )
 
-func (r *Receiver) startMonitoringService(wg *sync.WaitGroup) {
-	serviceName := "monitoring service"
-
+func (r *Receiver) startMonitoringService(wg *sync.WaitGroup, serviceName string) {
 	go func() {
 		log.WithFields(logrus.Fields{
 			"address": r.monitorAddr,

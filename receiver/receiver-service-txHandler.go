@@ -10,9 +10,7 @@ import (
 	"time"
 )
 
-func (r *Receiver) startTxHandler(wg *sync.WaitGroup) {
-	serviceName := "txHandler"
-
+func (r *Receiver) startTxHandler(wg *sync.WaitGroup, serviceName string) {
 	go func() {
 		log.WithFields(logrus.Fields{
 			"batchSize":        r.batchSize,

@@ -16,9 +16,7 @@ import (
 	"sync"
 )
 
-func (r *Receiver) startGrpcService(wg *sync.WaitGroup) {
-	serviceName := "gRPC service"
-
+func (r *Receiver) startGrpcService(wg *sync.WaitGroup, serviceName string) {
 	go func() {
 		log.WithFields(logrus.Fields{
 			"secured": !r.Engine.Config.Insecure,

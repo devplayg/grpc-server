@@ -72,23 +72,19 @@ func (r *Receiver) Start() error {
 
 	// Start tx-failed-handler
 	wg.Add(1)
-	r.startTxHandler(wg)
+	r.startTxHandler(wg, "txHandler")
 
 	// Start gRPC service
 	wg.Add(1)
-	r.startGrpcService(wg)
+	r.startGrpcService(wg, "gRPC service")
 
 	// Start  monitoring service
 	if r.monitor {
 		wg.Add(1)
-		r.startMonitoringService(wg)
+		r.startMonitoringService(wg, "monitoring service")
 	}
 
-	log.WithFields(logrus.Fields{
-		//"batchSize":        r.batchSize,
-		//"batchTimeout(ms)": r.batchTimeout.Milliseconds(),
-		//"workerCount":      r.workerCount,
-	}).Infof("server(%s) has been started", r.Engine.Config.Name)
+	log.Infof("server(%s) has been started", r.Engine.Config.Name)
 
 	// Wait for canceling context
 	<-r.Ctx.Done()
