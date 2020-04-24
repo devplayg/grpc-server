@@ -24,7 +24,7 @@ var (
 	fs         = pflag.NewFlagSet("generator", pflag.ExitOnError)
 	agentCount = fs.IntP("agent", "a", 10, "Client count")
 	dataCount  = fs.IntP("c", "c", 1, "Event count by client")
-	addr       = fs.String("addr", "localhost:8801", "Receiver address")
+	addr       = fs.String("addr", "127.0.0.1:8801", "Receiver address")
 	insecure   = fs.Bool("insecure", false, "Disable TLS")
 	devices    []string
 	images     [][]byte
@@ -148,7 +148,7 @@ func startHttpServer(dur time.Duration) {
 		w.Write([]byte(s))
 	})
 
-	go http.ListenAndServe("127.0.0.1:8120", nil)
+	go http.ListenAndServe("127.0.0.1:8123", nil)
 }
 
 func send(wg *sync.WaitGroup, events []*proto.Event) {

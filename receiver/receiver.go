@@ -70,64 +70,25 @@ func (r *Receiver) Start() error {
 	// Create wait group
 	wg := new(sync.WaitGroup)
 
-	// Handle TX failed events
+	// Start tx-failed-handler
 	wg.Add(1)
-	go func() {
-		log.Debug("tx-failed-handler has been started")
-		defer func() {
-			log.Debug("tx-failed-handler has been stopped")
-			wg.Done()
-		}()
-		if err := r.handleTxFailedEvent(); err != nil {
-			log.Error(fmt.Errorf("failed to run tx-failed-handler: %w", err))
-			r.Cancel()
-			return
-		}
-	}()
+	r.startTxHandler(wg)
 
-	// Run gRPC server
+	// Start gRPC service
 	wg.Add(1)
-	go func() {
-		log.WithFields(logrus.Fields{
-			"secured": !r.Engine.Config.Insecure,
-			"address": r.config.App.Receiver.Address,
-		}).Debug("gRPC service has been started")
-		defer func() {
-			log.Debug("gRPC service has been stopped")
-			wg.Done()
-		}()
+	r.startGrpcService(wg)
 
-		if err := r.startGrpcServer(r.storageCh); err != nil {
-			log.Error(fmt.Errorf("failed to start gRPC server: %w", err))
-			r.Cancel()
-			return
-		}
-	}()
-	log.WithFields(logrus.Fields{
-		"batchSize":        r.batchSize,
-		"batchTimeout(ms)": r.batchTimeout.Milliseconds(),
-		"workerCount":      r.workerCount,
-	}).Infof("server(%s) has been started", r.Engine.Config.Name)
-
-	// Run monitoring service
+	// Start  monitoring service
 	if r.monitor {
 		wg.Add(1)
-		go func() {
-			log.WithFields(logrus.Fields{
-				"address": r.monitorAddr,
-			}).Debug("monitoring service has been started")
-			defer func() {
-				log.Debug("monitoring service has been stopped")
-				wg.Done()
-			}()
-
-			if err := r.startMonitor(); err != nil {
-				log.Error(err)
-				r.Cancel()
-				return
-			}
-		}()
+		r.startMonitoringService(wg)
 	}
+
+	log.WithFields(logrus.Fields{
+		//"batchSize":        r.batchSize,
+		//"batchTimeout(ms)": r.batchTimeout.Milliseconds(),
+		//"workerCount":      r.workerCount,
+	}).Infof("server(%s) has been started", r.Engine.Config.Name)
 
 	// Wait for canceling context
 	<-r.Ctx.Done()

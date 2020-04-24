@@ -4,7 +4,6 @@ import (
 	"context"
 	"expvar"
 	"fmt"
-	"github.com/davecgh/go-spew/spew"
 	grpc_server "github.com/devplayg/grpc-server"
 	"github.com/devplayg/grpc-server/proto"
 	"github.com/golang/protobuf/ptypes/empty"
@@ -39,7 +38,7 @@ func (s *grpcService) Send(ctx context.Context, req *proto.Event) (*proto.Respon
 		}()
 		if err := s.relayToClassifier(req); err != nil {
 			s.storageCh <- req
-			log.Error("failed to relay request  to classifier")
+			log.Error(fmt.Errorf("failed to relay request to classifier; %w", err))
 			return
 		}
 
@@ -68,7 +67,6 @@ func (s *grpcService) GetServerStats(ctx context.Context, req *empty.Empty) (*pr
 	if err != nil {
 		return nil, status.Errorf(codes.Aborted, "method Send not implemented")
 	}
-	spew.Dump(classifierStats)
 	return &proto.ServerStats{
 		StartTimeUnixNano:     grpc_server.ServerStats.Get(grpc_server.StatsInitialProcessing).(*expvar.Int).Value(),
 		EndTimeUnixNano:       grpc_server.ServerStats.Get(grpc_server.StatsLastProcessing).(*expvar.Int).Value(),

@@ -1,13 +1,11 @@
 package receiver
 
 import (
-	"context"
 	"fmt"
 	grpc_server "github.com/devplayg/grpc-server"
 	"github.com/devplayg/grpc-server/classifier"
-	"net/http"
 	"os"
-	"time"
+	"strings"
 )
 
 func (r *Receiver) init() error {
@@ -33,11 +31,17 @@ func (r *Receiver) loadConfig() error {
 	if len(config.App.Receiver.Address) < 1 {
 		config.App.Receiver.Address = DefaultAddress
 	}
+
 	if len(config.App.Receiver.StorageDir) < 1 {
 		config.App.Receiver.StorageDir = DefaultStorageDir
 	}
+
 	if len(config.App.Receiver.Classifier.Address) < 1 {
 		config.App.Receiver.Classifier.Address = classifier.DefaultAddress
+	}
+	arr := strings.Split(config.App.Receiver.Classifier.Address, ":")
+	if len(arr) == 2 && len(arr[0]) < 1 {
+		config.App.Receiver.Classifier.Address = "127.0.0.1:" + arr[1]
 	}
 
 	r.config = config
@@ -57,32 +61,4 @@ func (r *Receiver) initCredentials() error {
 	}
 
 	return nil
-}
-
-func (r *Receiver) startMonitor() error {
-	srv := http.Server{
-		Addr: r.monitorAddr,
-	}
-	ctx, cancel := context.WithCancel(context.Background())
-	go func() {
-		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
-			ctx = context.WithValue(ctx, "err", err)
-			cancel()
-			return
-		}
-	}()
-
-	select {
-	case <-ctx.Done():
-		return ctx.Value("err").(error)
-	case <-r.Ctx.Done():
-		log.Debug(fmt.Errorf("monitoring service received stop signal from server"))
-		ctxShutDown, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-
-		if err := srv.Shutdown(ctxShutDown); err != http.ErrServerClosed {
-			return err
-		}
-		return nil
-	}
 }

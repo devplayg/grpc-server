@@ -13,9 +13,33 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/keepalive"
 	"net"
+	"sync"
 )
 
-func (r *Receiver) startGrpcServer(storageCh chan<- *proto.Event) error {
+func (r *Receiver) startGrpcService(wg *sync.WaitGroup) {
+	serviceName := "gRPC service"
+
+	go func() {
+		log.WithFields(logrus.Fields{
+			"secured": !r.Engine.Config.Insecure,
+			"address": r.config.App.Receiver.Address,
+			"worker":  r.workerCount,
+		}).Debugf("%s has been started", serviceName)
+
+		defer func() {
+			log.Debugf("%s has been stopped", serviceName)
+			wg.Done()
+		}()
+
+		if err := r._startGrpcServer(r.storageCh); err != nil {
+			log.Error(fmt.Errorf("failed to start %s: %w", serviceName, err))
+			r.Cancel()
+			return
+		}
+	}()
+}
+
+func (r *Receiver) _startGrpcServer(storageCh chan<- *proto.Event) error {
 	// Dial
 	ln, err := net.Listen("tcp", r.config.App.Receiver.Address)
 	if err != nil {
@@ -48,12 +72,13 @@ func (r *Receiver) startGrpcServer(storageCh chan<- *proto.Event) error {
 		}
 	}()
 
-	// Wait for signal from local context or receiver's context
+	// Wait for signal
 	select {
-	case <-ctx.Done():
+	case <-ctx.Done(): // from local context
 		<-ch
 		return ctx.Value("err").(error)
-	case <-r.Ctx.Done():
+
+	case <-r.Ctx.Done(): // from server context
 		log.Debug(fmt.Errorf("gRPC service received stop signal from server"))
 		r.gRpcServer.Stop()
 		<-ch
