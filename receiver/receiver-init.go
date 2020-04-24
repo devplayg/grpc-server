@@ -7,6 +7,7 @@ import (
 	"github.com/devplayg/grpc-server/classifier"
 	"net/http"
 	"os"
+	"time"
 )
 
 func (r *Receiver) init() error {
@@ -62,26 +63,26 @@ func (r *Receiver) startMonitor() error {
 	srv := http.Server{
 		Addr: r.monitorAddr,
 	}
-	ch := make(chan bool)
-
+	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
-		defer close(ch)
-		<-r.Ctx.Done()
-		if err := srv.Shutdown(context.Background()); err != nil {
-			log.Error(err)
-			return
-		}
-	}()
-
-	go func() {
-		log.Debug("monitoring service has been started")
 		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
-			log.Error(err)
-			r.Cancel()
+			ctx = context.WithValue(ctx, "err", err)
+			cancel()
 			return
 		}
 	}()
-	<-ch
-	log.Debug("monitoring service has been stopped")
-	return nil
+
+	select {
+	case <-ctx.Done():
+		return ctx.Value("err").(error)
+	case <-r.Ctx.Done():
+		log.Debug(fmt.Errorf("monitoring service received stop signal from server"))
+		ctxShutDown, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		if err := srv.Shutdown(ctxShutDown); err != http.ErrServerClosed {
+			return err
+		}
+		return nil
+	}
 }

@@ -8,6 +8,7 @@ import (
 	"time"
 )
 
+// Signal
 func (r *Receiver) handleTxFailedEvent() error {
 	ch := make(chan bool)
 	go func() {
@@ -46,6 +47,7 @@ func (r *Receiver) handleTxFailedEvent() error {
 					save()
 				}
 			case <-r.Ctx.Done():
+				log.Debug("tx-failed-handler received stop signal from server")
 				// log.Debug("Failed event handler has been stopped")
 				if len(batch) > 0 {
 					save()

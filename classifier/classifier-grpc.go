@@ -18,7 +18,7 @@ func (c *Classifier) startGrpcServer() error {
 	if err != nil {
 		return err
 	}
-	c.Log.Infof("gRPC server is listening on %s for requests from receiver", c.config.App.Classifier.Address)
+	log.Infof("gRPC server is listening on %s for requests from receiver", c.config.App.Classifier.Address)
 
 	opts := c.getGrpcServerOptions()
 	c.gRpcServer = grpc.NewServer(opts...)
@@ -83,7 +83,7 @@ func (c *Classifier) getGrpcServerOptions() []grpc.ServerOption {
 			panic(err)
 		}
 		opts = append(opts, grpc.Creds(creds))
-		c.Log.Infof("secured gRPC with %s", creds.Info().SecurityProtocol)
+		log.Infof("secured gRPC with %s", creds.Info().SecurityProtocol)
 	}
 	// grpc.UnaryInterceptor(grpc_server.UnaryInterceptor),
 

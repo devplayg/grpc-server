@@ -2,6 +2,7 @@ package grpc_server
 
 import (
 	"expvar"
+	"runtime"
 	"time"
 )
 
@@ -24,6 +25,8 @@ var (
 )
 
 func init() {
+	runtime.GOMAXPROCS(runtime.NumCPU())
+
 	ServerStats = expvar.NewMap("server")
 
 	if err := EnsureDir(DataDir); err != nil {

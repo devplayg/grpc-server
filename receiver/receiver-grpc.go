@@ -1,6 +1,8 @@
 package receiver
 
 import (
+	"context"
+	"fmt"
 	grpc_server "github.com/devplayg/grpc-server"
 	"github.com/devplayg/grpc-server/proto"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
@@ -14,17 +16,17 @@ import (
 )
 
 func (r *Receiver) startGrpcServer(storageCh chan<- *proto.Event) error {
+	// Dial
 	ln, err := net.Listen("tcp", r.config.App.Receiver.Address)
 	if err != nil {
 		return err
 	}
-	log.Infof("gRPC server is listening on %s for requests from agent", r.config.App.Receiver.Address)
 
 	// Create gRPC server
 	opts := r.getGrpcServerOptions()
 	r.gRpcServer = grpc.NewServer(opts...)
 
-	// Register server to gRPC server
+	// Register service to gRPC server
 	service := &grpcService{
 		storageCh:        storageCh,
 		classifierClient: r.classifierClient,
@@ -32,20 +34,31 @@ func (r *Receiver) startGrpcServer(storageCh chan<- *proto.Event) error {
 	}
 	proto.RegisterEventServiceServer(r.gRpcServer, service)
 
-	// Run
+	// Create context
+	ctx, cancel := context.WithCancel(context.Background())
+
+	// Run gRPC server
 	ch := make(chan bool)
 	go func() {
 		defer close(ch)
 		if err := r.gRpcServer.Serve(ln); err != nil {
-			log.Error(err)
-			r.Cancel()
+			ctx = context.WithValue(ctx, "err", err)
+			cancel()
 			return
 		}
 	}()
 
-	<-r.Ctx.Done()
-	r.gRpcServer.Stop()
-	<-ch
+	// Wait for signal from local context or receiver's context
+	select {
+	case <-ctx.Done():
+		<-ch
+		return ctx.Value("err").(error)
+	case <-r.Ctx.Done():
+		log.Debug(fmt.Errorf("gRPC service received stop signal from server"))
+		r.gRpcServer.Stop()
+		<-ch
+	}
+
 	return nil
 }
 
@@ -94,7 +107,6 @@ func (r *Receiver) getGrpcServerOptions() []grpc.ServerOption {
 			panic(err)
 		}
 		opts = append(opts, grpc.Creds(creds))
-		r.Log.Infof("secured gRPC with %s", creds.Info().SecurityProtocol)
 	}
 
 	return opts
