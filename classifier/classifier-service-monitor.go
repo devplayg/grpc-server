@@ -1,4 +1,4 @@
-package receiver
+package classifier
 
 import (
 	"context"
@@ -9,27 +9,27 @@ import (
 	"time"
 )
 
-func (r *Receiver) startMonitoringService(wg *sync.WaitGroup, serviceName string) {
+func (c *Classifier) startMonitoringService(wg *sync.WaitGroup, serviceName string) {
 	go func() {
 		log.WithFields(logrus.Fields{
-			"address": r.monitorAddr,
+			"address": c.monitorAddr,
 		}).Debugf("%s has been started", serviceName)
 		defer func() {
 			log.Debugf("%s has been stopped", serviceName)
 			wg.Done()
 		}()
 
-		if err := r._startMonitor(); err != nil {
+		if err := c._startMonitor(); err != nil {
 			log.Error(fmt.Errorf("failed to start %s: %w", serviceName, err))
-			r.Cancel()
+			c.Cancel()
 			return
 		}
 	}()
 }
 
-func (r *Receiver) _startMonitor() error {
+func (c *Classifier) _startMonitor() error {
 	srv := http.Server{
-		Addr: r.monitorAddr,
+		Addr: c.monitorAddr,
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
@@ -44,7 +44,7 @@ func (r *Receiver) _startMonitor() error {
 	case <-ctx.Done(): // from local context
 		return ctx.Value("err").(error)
 
-	case <-r.Ctx.Done(): // from receiver context
+	case <-c.Ctx.Done(): // from receiver context
 		log.Debug(fmt.Errorf("monitoring service received stop signal"))
 		ctxShutDown, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()

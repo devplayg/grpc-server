@@ -6,20 +6,20 @@ import (
 	"google.golang.org/grpc"
 )
 
-type notifier struct {
+type notifierClient struct {
 	gRpcClient proto.EventServiceClient
 	address    string
 	conn       *grpc.ClientConn
 	clientApi  proto.EventServiceClient
 }
 
-func newNotifier(addr string) *notifier {
-	return &notifier{
+func newNotifier(addr string) *notifierClient {
+	return &notifierClient{
 		address: addr,
 	}
 }
 
-func (n *notifier) connect() error {
+func (n *notifierClient) connect() error {
 	conn, err := grpc.Dial(
 		n.address,
 		grpc.WithInsecure(),
@@ -38,7 +38,7 @@ func (n *notifier) connect() error {
 	return nil
 }
 
-func (n *notifier) disconnect() error {
+func (n *notifierClient) disconnect() error {
 	if n.conn != nil {
 		if err := n.conn.Close(); err != nil {
 			return err

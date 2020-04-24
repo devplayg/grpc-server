@@ -14,16 +14,11 @@ import (
 
 func (c *Classifier) init() error {
 	log = c.Log
+	grpc_server.ResetServerStats()
 
-	// Initialize configuration
-	config, err := grpc_server.LoadConfig()
-	if err != nil {
-		return fmt.Errorf("failed to load configuration")
+	if err := c.loadConfig(); err != nil {
+		return err
 	}
-	if len(config.App.Classifier.Address) < 1 {
-		config.App.Classifier.Address = DefaultAddress
-	}
-	c.config = config
 
 	// Initialize database
 	if err := c.initDatabase(c.workerCount+4, c.workerCount+4); err != nil {
@@ -41,7 +36,7 @@ func (c *Classifier) init() error {
 	if err != nil {
 		return fmt.Errorf("failed to initialize MinIO; %w", err)
 	}
-	//minioClient.MakeBucket(c.config.App.Storage.Bucket, "")
+
 	c.minioClient = minioClient
 
 	// Load asset
@@ -57,10 +52,22 @@ func (c *Classifier) init() error {
 	return nil
 }
 
+func (c *Classifier) loadConfig() error {
+	config, err := grpc_server.LoadConfig()
+	if err != nil {
+		return fmt.Errorf("failed to load configuration")
+	}
+	if len(config.App.Classifier.Address) < 1 {
+		config.App.Classifier.Address = DefaultAddress
+	}
+	c.config = config
+	return nil
+}
+
 func (c *Classifier) loadDevices() error {
 	c.deviceCodeMap = make(map[string]int64)
-	start := 65
-	count := 26
+	start := 65 // From 'A'
+	count := 26 // To 'Z'
 	id := int64(1)
 	for i := start; i < start+count; i++ {
 		code := string(i)
@@ -115,18 +122,6 @@ func ConvertJdbcUrlToGoOrm(str, username, password string) (string, *time.Locati
 
 	return connStr, loc, nil
 }
-
-//func resetStats() {
-//	log.Debug("reset stats")
-//
-//	stats.Set("start", new(expvar.Int))
-//	stats.Get("start").(*expvar.Int).Set(time.Now().UnixNano())
-//	stats.Set("end", new(expvar.Int))
-//	stats.Set("inserted-time", new(expvar.Int))
-//	stats.Set("uploaded-time", new(expvar.Int))
-//	stats.Set("uploaded-size", new(expvar.Int))
-//	stats.Set("uploaded", new(expvar.Int))
-//}
 
 func (c *Classifier) initMonitor() error {
 	//resetStats()

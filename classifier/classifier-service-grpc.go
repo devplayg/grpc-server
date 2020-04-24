@@ -1,6 +1,8 @@
 package classifier
 
 import (
+	"context"
+	"fmt"
 	grpc_server "github.com/devplayg/grpc-server"
 	"github.com/devplayg/grpc-server/proto"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
@@ -11,30 +13,73 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/keepalive"
 	"net"
+	"sync"
 )
 
-func (c *Classifier) startGrpcServer() error {
+func (c *Classifier) startGrpcService(wg *sync.WaitGroup, serviceName string) {
+	go func() {
+		log.WithFields(logrus.Fields{
+			"secured": !c.Engine.Config.Insecure,
+			"address": c.config.App.Classifier.Address,
+			"worker":  c.workerCount,
+		}).Debugf("%s has been started", serviceName)
+
+		defer func() {
+			log.Debugf("%s has been stopped", serviceName)
+			wg.Done()
+		}()
+
+		if err := c._startGrpcServer(); err != nil {
+			log.Error(fmt.Errorf("failed to start %s: %w", serviceName, err))
+			c.Cancel()
+			return
+		}
+	}()
+}
+
+func (c *Classifier) _startGrpcServer() error {
 	ln, err := net.Listen("tcp", c.config.App.Classifier.Address)
 	if err != nil {
 		return err
 	}
-	log.Infof("gRPC server is listening on %s for requests from receiver", c.config.App.Classifier.Address)
 
 	opts := c.getGrpcServerOptions()
 	c.gRpcServer = grpc.NewServer(opts...)
 
 	// Register server to gRPC server
 	service := &grpcService{
-		classifier: c,
-		notifier:   c.notifier,
-		ch:         make(chan bool, c.workerCount),
+		classifier:     c,
+		notifierClient: c.notifierClient,
+		ch:             make(chan bool, c.workerCount),
 	}
 	proto.RegisterEventServiceServer(c.gRpcServer, service)
 
-	// Run
-	if err := c.gRpcServer.Serve(ln); err != nil {
-		return err
+	// Create context
+	ctx, cancel := context.WithCancel(context.Background())
+
+	// Run gRPC server
+	ch := make(chan bool)
+	go func() {
+		defer close(ch)
+		if err := c.gRpcServer.Serve(ln); err != nil {
+			ctx = context.WithValue(ctx, "err", err)
+			cancel()
+			return
+		}
+	}()
+
+	// Wait for signal
+	select {
+	case <-ctx.Done(): // from local context
+		<-ch
+		return ctx.Value("err").(error)
+
+	case <-c.Ctx.Done(): // from server context
+		log.Debug(fmt.Errorf("gRPC service received stop signal"))
+		c.gRpcServer.Stop()
+		<-ch
 	}
+
 	return nil
 }
 

@@ -38,7 +38,6 @@ func (r *Receiver) startGrpcService(wg *sync.WaitGroup, serviceName string) {
 }
 
 func (r *Receiver) _startGrpcServer(storageCh chan<- *proto.Event) error {
-	// Dial
 	ln, err := net.Listen("tcp", r.config.App.Receiver.Address)
 	if err != nil {
 		return err
@@ -77,7 +76,7 @@ func (r *Receiver) _startGrpcServer(storageCh chan<- *proto.Event) error {
 		return ctx.Value("err").(error)
 
 	case <-r.Ctx.Done(): // from server context
-		log.Debug(fmt.Errorf("gRPC service received stop signal from server"))
+		log.Debug(fmt.Errorf("gRPC service received stop signal"))
 		r.gRpcServer.Stop()
 		<-ch
 	}

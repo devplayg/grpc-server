@@ -14,10 +14,10 @@ import (
 const statsInsertingTime = "inserting-time"
 
 type grpcService struct {
-	notifier   *notifier
-	classifier *Classifier
-	once       sync.Once
-	ch         chan bool
+	notifierClient *notifierClient
+	classifier     *Classifier
+	once           sync.Once
+	ch             chan bool
 }
 
 func (s *grpcService) Send(ctx context.Context, req *proto.Event) (*proto.Response, error) {

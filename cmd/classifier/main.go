@@ -27,6 +27,8 @@ var (
 	batchSize    = fs.Int("batchsize", 10000, "Batch size")
 	batchTimeout = fs.Int("batchtime", 1000, "Batch timeout, in milliseconds")
 	worker       = fs.Int("worker", 0, "Worker count")
+	monitor      = fs.Bool("mon", false, "Monitoring operation on HTTP")
+	monitorAddr  = fs.String("monaddr", ":8901", "Monitoring address")
 )
 
 func main() {
@@ -45,7 +47,7 @@ func main() {
 		config.LogDir = ""
 	}
 
-	server := classifier.NewClassifier(*batchSize, time.Duration(*batchTimeout)*time.Millisecond, *worker)
+	server := classifier.NewClassifier(*batchSize, time.Duration(*batchTimeout)*time.Millisecond, *worker, *monitor, *monitorAddr)
 	engine := hippo.NewEngine(server, &config)
 	if err := engine.Start(); err != nil {
 		panic(err)

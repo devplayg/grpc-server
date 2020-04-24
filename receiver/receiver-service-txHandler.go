@@ -61,7 +61,7 @@ func (r *Receiver) _startTxHandler() error {
 					save()
 				}
 			case <-r.Ctx.Done():
-				log.Debug("tx-failed-handler received stop signal from server")
+				log.Debug("tx-failed-handler received stop signal")
 				if len(batch) > 0 {
 					save()
 				}
