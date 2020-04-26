@@ -6,7 +6,6 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	"github.com/minio/minio-go"
-	"net/http"
 	"net/url"
 	"strings"
 	"time"
@@ -14,7 +13,7 @@ import (
 
 func (c *Classifier) init() error {
 	log = c.Log
-	grpc_server.ResetServerStats()
+	grpc_server.ResetServerStats(statsInsertingTime)
 
 	if err := c.loadConfig(); err != nil {
 		return err
@@ -42,11 +41,6 @@ func (c *Classifier) init() error {
 	// Load asset
 	if err := c.loadDevices(); err != nil {
 		return fmt.Errorf("failed to load devices; %w", err)
-	}
-
-	// Monitoring
-	if err := c.initMonitor(); err != nil {
-		return err
 	}
 
 	return nil
@@ -121,39 +115,4 @@ func ConvertJdbcUrlToGoOrm(str, username, password string) (string, *time.Locati
 	)
 
 	return connStr, loc, nil
-}
-
-func (c *Classifier) initMonitor() error {
-	//resetStats()
-
-	//http.HandleFunc("/stats", func(w http.ResponseWriter, r *http.Request) {
-	//	m := map[string]interface{}{
-	//		"duration":      (stats.Get("end").(*expvar.Int).Value() - stats.Get("start").(*expvar.Int).Value()) / int64(time.Millisecond),
-	//		"inserted-time": stats.Get("inserted-time").(*expvar.Int).Value(),
-	//		"uploaded-time": stats.Get("uploaded-time").(*expvar.Int).Value(),
-	//		"uploaded-size": stats.Get("uploaded-size").(*expvar.Int).Value(),
-	//		"uploaded":      stats.Get("uploaded").(*expvar.Int).Value(),
-	//	}
-	//
-	//	s := fmt.Sprintf("%d\t%d\t%d\t%d\t%d",
-	//		m["uploaded"],
-	//		m["duration"],
-	//		m["uploaded-size"],
-	//		m["inserted-time"],
-	//		m["uploaded-time"],
-	//	)
-	//	//dur := stats.Get("end").(*expvar.Int).Value() - stats.Get("start").(*expvar.Int).Value()
-	//	//m["relayed-time"] = dur / int64(time.Millisecond)
-	//	//m["relayed"] = stats.Get("relayed").(*expvar.Int).Value()
-	//	//b, _ := json.MarshalIndent(m, "", "  ")
-	//	w.Write([]byte(s))
-	//})
-	//
-	//go http.ListenAndServe(":8124", nil)
-
-	grpc_server.ResetServerStats(statsInsertingTime)
-
-	go http.ListenAndServe(":8124", nil)
-
-	return nil
 }

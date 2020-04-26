@@ -2,6 +2,7 @@ package grpc_server
 
 import (
 	"expvar"
+	"github.com/devplayg/grpc-server/proto"
 	"runtime"
 	"time"
 )
@@ -49,5 +50,17 @@ func ResetServerStats(extras ...string) {
 
 	for _, e := range extras {
 		ServerStats.Set(e, new(expvar.Int))
+	}
+}
+
+func GetServerStats() *proto.ServerStats {
+	return &proto.ServerStats{
+		StartTimeUnixNano:     ServerStats.Get(StatsInitialProcessing).(*expvar.Int).Value(),
+		EndTimeUnixNano:       ServerStats.Get(StatsLastProcessing).(*expvar.Int).Value(),
+		Count:                 ServerStats.Get(StatsCount).(*expvar.Int).Value(),
+		Size:                  ServerStats.Get(StatsSize).(*expvar.Int).Value(),
+		Worker:                int32(ServerStats.Get(StatsWorker).(*expvar.Int).Value()),
+		TotalWorkingTimeMilli: ServerStats.Get(StatsWorkingTime).(*expvar.Int).Value(),
+		Meta:                  "",
 	}
 }

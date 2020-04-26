@@ -67,21 +67,16 @@ func (s *grpcService) GetServerStats(ctx context.Context, req *empty.Empty) (*pr
 	if err != nil {
 		return nil, status.Errorf(codes.Aborted, "method Send not implemented")
 	}
-	return &proto.ServerStats{
-		StartTimeUnixNano:     grpc_server.ServerStats.Get(grpc_server.StatsInitialProcessing).(*expvar.Int).Value(),
-		EndTimeUnixNano:       grpc_server.ServerStats.Get(grpc_server.StatsLastProcessing).(*expvar.Int).Value(),
-		Count:                 grpc_server.ServerStats.Get(grpc_server.StatsCount).(*expvar.Int).Value(),
-		Size:                  grpc_server.ServerStats.Get(grpc_server.StatsSize).(*expvar.Int).Value(),
-		Worker:                int32(grpc_server.ServerStats.Get(grpc_server.StatsWorker).(*expvar.Int).Value()),
-		TotalWorkingTimeMilli: 0,
-		Meta: fmt.Sprintf("%d\t%d\t%d\t%d\t%s",
-			classifierStats.Count,
-			(classifierStats.EndTimeUnixNano-classifierStats.StartTimeUnixNano)/int64(time.Millisecond),
-			classifierStats.Size,
-			classifierStats.TotalWorkingTimeMilli,
-			classifierStats.Meta,
-		),
-	}, nil
+	stats := grpc_server.GetServerStats()
+	stats.Meta = fmt.Sprintf("%d\t%d\t%d\t%d\t%s",
+		classifierStats.Count,
+		(classifierStats.EndTimeUnixNano-classifierStats.StartTimeUnixNano)/int64(time.Millisecond),
+		classifierStats.Size,
+		classifierStats.TotalWorkingTimeMilli,
+		classifierStats.Meta,
+	)
+
+	return stats, nil
 }
 
 func (s *grpcService) relayToClassifier(req *proto.Event) error {
