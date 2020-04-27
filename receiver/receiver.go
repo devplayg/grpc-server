@@ -7,7 +7,6 @@ import (
 	"github.com/devplayg/hippo/v2"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
-	"runtime"
 	"sync"
 	"time"
 )
@@ -23,7 +22,7 @@ var (
 )
 
 func NewReceiver(batchSize int, batchTimeout time.Duration, worker int, monitor bool, monitorAddr string) *Receiver {
-	workerCount := runtime.NumCPU() * 2
+	workerCount := 4000
 	if worker > 0 {
 		workerCount = worker
 	}

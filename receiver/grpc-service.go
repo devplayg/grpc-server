@@ -18,7 +18,7 @@ type grpcService struct {
 	classifierClient *classifierClient
 	storageCh        chan<- *proto.Event
 	once             sync.Once
-	//ch               chan bool
+	ch               chan bool
 }
 
 func (s *grpcService) Send(ctx context.Context, req *proto.Event) (*proto.Response, error) {
@@ -27,14 +27,14 @@ func (s *grpcService) Send(ctx context.Context, req *proto.Event) (*proto.Respon
 		grpc_server.ServerStats.Get(grpc_server.StatsInitialProcessing).(*expvar.Int).Set(time.Now().UnixNano())
 	})
 
-	//s.ch <- true
+	s.ch <- true
 	grpc_server.ServerStats.Add(grpc_server.StatsWorker, 1)
 	go func() {
 		defer func() {
 			// Last  processing time
 			grpc_server.ServerStats.Get(grpc_server.StatsLastProcessing).(*expvar.Int).Set(time.Now().UnixNano())
 			grpc_server.ServerStats.Add(grpc_server.StatsWorker, -1)
-			//<-s.ch
+			<-s.ch
 		}()
 		if err := s.relayToClassifier(req); err != nil {
 			s.storageCh <- req
