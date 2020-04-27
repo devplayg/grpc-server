@@ -32,7 +32,9 @@ var (
 	conn      *grpc.ClientConn
 	clientApi proto.EventServiceClient
 
-	size uint64
+	size    uint64
+	success uint32
+	failed  uint32
 )
 
 func init() {
@@ -78,7 +80,7 @@ func main() {
 	wg.Wait()
 
 	dur := time.Since(started)
-	fmt.Printf("agent=%d, totalData=%d, time=%d\n", *agentCount, (*agentCount)*(*dataCount), dur.Milliseconds())
+	fmt.Printf("agent=%d, sent=%d, failed=%d, time=%d\n", *agentCount, success, failed, dur.Milliseconds())
 
 	startHttpServer(dur)
 	fmt.Scanln()
@@ -188,8 +190,10 @@ func send(wg *sync.WaitGroup, events []*proto.Event) {
 		_, err = clientApi.Send(context.Background(), e)
 		if err != nil {
 			fmt.Printf("[error] %s\n", err.Error())
+			atomic.AddUint32(&failed, 1)
 			continue
 		}
+		atomic.AddUint32(&success, 1)
 	}
 }
 

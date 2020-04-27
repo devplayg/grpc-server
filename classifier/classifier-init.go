@@ -6,6 +6,7 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	"github.com/minio/minio-go"
+	"github.com/sirupsen/logrus"
 	"net/url"
 	"strings"
 	"time"
@@ -87,6 +88,10 @@ func (c *Classifier) initDatabase(maxIdleConns, maxOpenConns int) error {
 	db.DB().SetMaxOpenConns(maxOpenConns)
 	c.db = db
 	c.dbTimezone = dbTimezone
+	log.WithFields(logrus.Fields{
+		"maxIdleConns": maxIdleConns,
+		"maxOpenConns": maxOpenConns,
+	}).Debug("database")
 
 	return nil
 }
