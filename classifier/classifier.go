@@ -9,7 +9,6 @@ import (
 	"github.com/minio/minio-go"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
-	"runtime"
 	"sync"
 	"time"
 )
@@ -24,7 +23,7 @@ const (
 )
 
 func NewClassifier(batchSize int, batchTimeout time.Duration, worker int, monitor bool, monitorAddr string) *Classifier {
-	workerCount := runtime.NumCPU() * 2
+	workerCount := 4000
 	if worker > 0 {
 		workerCount = worker
 	}
