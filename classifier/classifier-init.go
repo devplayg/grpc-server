@@ -7,9 +7,6 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	"github.com/minio/minio-go"
 	"github.com/sirupsen/logrus"
-	"net/url"
-	"strings"
-	"time"
 )
 
 func (c *Classifier) init() error {
@@ -73,7 +70,7 @@ func (c *Classifier) loadDevices() error {
 }
 
 func (c *Classifier) initDatabase(maxIdleConns, maxOpenConns int) error {
-	connStr, dbTimezone, err := ConvertJdbcUrlToGoOrm(c.config.Spring.Datasource.Url, c.config.Spring.Datasource.Username, c.config.Spring.Datasource.Password)
+	connStr, dbTimezone, err := convertJdbcUrlToGoOrm(c.config.Spring.Datasource.Url, c.config.Spring.Datasource.Username, c.config.Spring.Datasource.Password)
 	if err != nil {
 		return err
 	}
@@ -93,30 +90,4 @@ func (c *Classifier) initDatabase(maxIdleConns, maxOpenConns int) error {
 	}).Debug("database")
 
 	return nil
-}
-
-func ConvertJdbcUrlToGoOrm(str, username, password string) (string, *time.Location, error) {
-	jdbcUrl := strings.TrimPrefix(str, "jdbc:")
-	u, err := url.Parse(jdbcUrl)
-	if err != nil {
-		return "", nil, err
-	}
-
-	param, err := url.ParseQuery(u.RawQuery)
-	timezone := param.Get("serverTimezone")
-	loc, err := time.LoadLocation(timezone)
-	if err != nil {
-		return "", nil, err
-	}
-
-	connStr := fmt.Sprintf(
-		"%s:%s@tcp(%s)%s?allowAllFiles=true&charset=utf8&parseTime=true&loc=%s",
-		username,
-		password,
-		u.Host,
-		u.Path,
-		strings.Replace(param.Get("serverTimezone"), "/", "%2F", -1),
-	)
-
-	return connStr, loc, nil
 }

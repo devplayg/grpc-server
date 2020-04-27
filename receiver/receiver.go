@@ -22,7 +22,7 @@ var (
 )
 
 func NewReceiver(batchSize int, batchTimeout time.Duration, worker int, monitor bool, monitorAddr string) *Receiver {
-	workerCount := 4000
+	workerCount := 4000 // Evnet(1MB
 	if worker > 0 {
 		workerCount = worker
 	}

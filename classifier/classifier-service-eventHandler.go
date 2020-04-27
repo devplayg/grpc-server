@@ -7,10 +7,7 @@ import (
 	"github.com/devplayg/grpc-server/proto"
 	"github.com/google/uuid"
 	"github.com/minio/minio-go"
-	"io/ioutil"
 	"os"
-	"path/filepath"
-	"strings"
 	"sync"
 	"time"
 )
@@ -125,103 +122,3 @@ func (c *Classifier) saveBody(e *EventWrapper) error {
 	}
 	return nil
 }
-
-func eventsToTsv(events []*EventWrapper) string {
-	var text string
-	for _, e := range events {
-		text += fmt.Sprintf("%s\t%d\t%d\t%s\t%d\t%d\n",
-			e.Date(),                 // date
-			e.deviceId,               // device id
-			e.event.Header.EventType, // event type
-			e.uuid.String(),          // uuid
-			e.flag,                   // flag
-			len(e.event.Body.Files),  // attach_count
-		)
-	}
-	return strings.TrimSpace(text)
-}
-
-func writeTextIntoTempFile(dir, text string) (string, error) {
-	tmpFile, err := ioutil.TempFile(dir, "db-")
-	if err != nil {
-		return "", fmt.Errorf("failed to create temporary file for saving data; %w", err)
-	}
-	defer tmpFile.Close()
-
-	if _, err := tmpFile.WriteString(text); err != nil {
-		return "", fmt.Errorf("failed to write data into temp file; %w", err)
-	}
-	return filepath.ToSlash(tmpFile.Name()), nil
-}
-
-//
-//func (c *Classifier) eventHeaderHandler() error {
-//	go func() {
-//		for {
-//			select {
-//			case e := <-c.eventHeaderCh:
-//
-//			case <-c.Ctx.Done():
-//				return
-//			}
-//		}
-//	}()
-//
-//	return nil
-//}
-//
-//func (c *Classifier) eventBodyHandler() error {
-//	go func() {
-//		for {
-//			select {
-//			case e := <-c.eventHeaderCh:
-//				c.save(e)
-//			case <-c.Ctx.Done():
-//				return
-//			}
-//		}
-//	}()
-//
-//	return nil
-//}
-
-//go func() {
-//	batch := make([]*EventWrapper, 0, c.batchSize)
-//	timer := time.NewTimer(c.batchTimeout)
-//	timer.Stop()
-//
-//	save := func() {
-//		defer func() {
-//			batch = make([]*EventWrapper, 0, c.batchSize)
-//		}()
-//		//if err := c.save(batch); err != nil {
-//		//	log.Error(err)
-//		//}
-//	}
-//
-//	for {
-//		select {
-//		case event := <-c.eventCh:
-//			batch = append(batch, c.wrapEvent(event))
-//			if len(batch) == 1 {
-//				timer.Reset(c.batchTimeout)
-//			}
-//			if len(batch) == c.batchSize {
-//				timer.Stop()
-//				save()
-//			}
-//		case <-c.Ctx.Done():
-//			log.Debug("storage channel is done")
-//			if len(batch) > 0 {
-//				save()
-//				return
-//			}
-//			return
-//		case <-timer.C:
-//			//save()
-//		}
-//	}
-//}()
-
-//return nil
-//}
