@@ -1,6 +1,7 @@
 package classifier
 
 import (
+	grpc_server "github.com/devplayg/grpc-server"
 	"github.com/devplayg/grpc-server/entity"
 	"github.com/devplayg/grpc-server/proto"
 	"github.com/google/uuid"
@@ -12,6 +13,10 @@ type EventWrapper struct {
 	uuid     uuid.UUID
 	flag     int
 	deviceId int64
+}
+
+func (e EventWrapper) Date() string {
+	return time.Unix(e.event.Header.Date.Seconds, 0).Format(grpc_server.DefaultDateFormat)
 }
 
 func (e EventWrapper) entity() *entity.Log {

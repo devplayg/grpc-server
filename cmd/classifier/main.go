@@ -28,7 +28,7 @@ var (
 	batchTimeout = fs.Int("batchtime", 1000, "Batch timeout, in milliseconds")
 	worker       = fs.Int("worker", 0, "Worker count")
 	monitor      = fs.Bool("mon", false, "Monitoring operation on HTTP")
-	monitorAddr  = fs.String("monaddr", ":8901", "Monitoring address")
+	monitorAddr  = fs.String("monaddr", ":8902", "Monitoring address")
 )
 
 func main() {

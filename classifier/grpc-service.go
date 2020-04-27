@@ -17,7 +17,7 @@ type grpcService struct {
 	notifierClient *notifierClient
 	classifier     *Classifier
 	once           sync.Once
-	ch             chan bool
+	//ch             chan bool
 }
 
 func (s *grpcService) Send(ctx context.Context, req *proto.Event) (*proto.Response, error) {
@@ -26,13 +26,11 @@ func (s *grpcService) Send(ctx context.Context, req *proto.Event) (*proto.Respon
 		grpc_server.ServerStats.Get(grpc_server.StatsInitialProcessing).(*expvar.Int).Set(time.Now().UnixNano())
 	})
 
-	s.ch <- true
 	grpc_server.ServerStats.Add(grpc_server.StatsWorker, 1)
 	go func() {
 		defer func() {
 			grpc_server.ServerStats.Get(grpc_server.StatsLastProcessing).(*expvar.Int).Set(time.Now().UnixNano())
 			grpc_server.ServerStats.Add(grpc_server.StatsWorker, -1)
-			<-s.ch
 		}()
 		if err := s.classifier.save(req); err != nil {
 			log.Error(err)

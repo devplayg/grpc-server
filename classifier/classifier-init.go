@@ -26,7 +26,6 @@ func (c *Classifier) init() error {
 	}
 
 	// Initialize MinIO
-	//spew.Dump(c.config.App.Storage)
 	minioClient, err := minio.New(
 		c.config.App.Storage.Address,
 		c.config.App.Storage.AccessKey,

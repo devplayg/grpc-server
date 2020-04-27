@@ -50,7 +50,6 @@ func (c *Classifier) _startGrpcServer() error {
 	service := &grpcService{
 		classifier:     c,
 		notifierClient: c.notifierClient,
-		ch:             make(chan bool, c.workerCount),
 	}
 	proto.RegisterEventServiceServer(c.gRpcServer, service)
 

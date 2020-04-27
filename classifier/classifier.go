@@ -33,11 +33,13 @@ func NewClassifier(batchSize int, batchTimeout time.Duration, worker int, monito
 	}
 
 	return &Classifier{
-		batchSize:    batchSize,
-		batchTimeout: batchTimeout,
-		workerCount:  workerCount,
-		monitor:      monitor,
-		monitorAddr:  monitorAddr,
+		batchSize:     batchSize,
+		batchTimeout:  batchTimeout,
+		workerCount:   workerCount,
+		monitor:       monitor,
+		monitorAddr:   monitorAddr,
+		eventHeaderCh: make(chan *EventWrapper, workerCount),
+		eventBodyCh:   make(chan bool, workerCount),
 	}
 }
 
@@ -64,6 +66,10 @@ type Classifier struct {
 
 	// Storage
 	minioClient *minio.Client
+
+	// Event channel
+	eventHeaderCh chan *EventWrapper
+	eventBodyCh   chan bool
 }
 
 func (c *Classifier) Start() error {
@@ -79,6 +85,9 @@ func (c *Classifier) Start() error {
 
 	// Create wait group
 	wg := new(sync.WaitGroup)
+
+	wg.Add(1)
+	c.saveHeader(wg)
 
 	// Start gRPC service
 	wg.Add(1)
@@ -98,27 +107,6 @@ func (c *Classifier) Start() error {
 	// Waiting for gRPC server to shut down
 	wg.Wait()
 
-	//ch := make(chan bool)
-	//go func() {
-	//	defer close(ch)
-	//	if err := c.startGrpcServer(); err != nil {
-	//		log.Error(fmt.Errorf("failed to start gRPC server: %w", err))
-	//		c.Cancel()
-	//		return
-	//	}
-	//	log.Debug("gRpcServer has been stopped")
-	//}()
-	//log.WithFields(logrus.Fields{
-	//	"batchSize":        c.batchSize,
-	//	"batchTimeout(ms)": c.batchTimeout.Milliseconds(),
-	//	"workerCount":      c.workerCount,
-	//}).Infof("%s has been started", c.Engine.Config.Name)
-	//
-	//<-c.Ctx.Done()
-	//
-	//
-	//// Waiting for gRPC server to shut down
-	//<-ch
 	return nil
 }
 
