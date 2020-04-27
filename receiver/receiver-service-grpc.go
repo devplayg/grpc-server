@@ -51,7 +51,7 @@ func (r *Receiver) _startGrpcServer(storageCh chan<- *proto.Event) error {
 	service := &grpcService{
 		storageCh:        storageCh,
 		classifierClient: r.classifierClient,
-		ch:               make(chan bool, r.workerCount),
+		//ch:               make(chan bool, r.workerCount),
 	}
 	proto.RegisterEventServiceServer(r.gRpcServer, service)
 
