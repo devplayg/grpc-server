@@ -69,6 +69,7 @@ func (c *Classifier) saveHeader(wg *sync.WaitGroup) error {
 				log.Error(err)
 				return
 			}
+			log.Debugf("inserted %d row(s)", len(batch))
 			os.Remove(path)
 		}
 
