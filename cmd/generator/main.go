@@ -4,9 +4,11 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	grpc_server "github.com/devplayg/grpc-server"
 	"github.com/devplayg/grpc-server/proto"
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/golang/protobuf/ptypes/timestamp"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -99,7 +101,6 @@ func generateData() map[int32][]*proto.Event {
 }
 
 func connect() (*grpc.ClientConn, proto.EventServiceClient) {
-
 	opts := make([]grpc.DialOption, 0)
 	opts = append(opts, grpc.WithKeepaliveParams(keepalive.ClientParameters{}))
 	if !*insecure {
@@ -110,6 +111,25 @@ func connect() (*grpc.ClientConn, proto.EventServiceClient) {
 	} else {
 		opts = append(opts, grpc.WithInsecure())
 	}
+	opts = append(opts, grpc.WithStatsHandler(&grpc_server.ConnStatsHandler{
+		To:  "receiver",
+		Log: logrus.New(),
+	}))
+
+	//var retryPolicy = `{
+	//        "methodConfig": [{
+	//            "name": [{"service": "proto.EventService"}],
+	//            "waitForReady": true,
+	//            "retryPolicy": {
+	//                "MaxAttempts": 4,
+	//                "InitialBackoff": ".01s",
+	//                "MaxBackoff": ".01s",
+	//                "BackoffMultiplier": 1.0,
+	//                "RetryableStatusCodes": [ "UNAVAILABLE" ]
+	//            }
+	//        }]
+	//    }`
+	//opts = append(opts, grpc.WithDefaultServiceConfig(retryPolicy))
 
 	// Create connection
 	conn, err := grpc.Dial(*addr, opts...)
@@ -148,6 +168,16 @@ func startHttpServer(dur time.Duration) {
 			stats.Meta,
 		)
 		w.Write([]byte(s))
+	})
+
+	http.HandleFunc("/do", func(w http.ResponseWriter, r *http.Request) {
+		ctx, _ := context.WithTimeout(context.Background(), 3*time.Second)
+		res, err := clientApi.Send(ctx, generateEvent("dddd"))
+		if err != nil {
+			w.Write([]byte(err.Error()))
+			return
+		}
+		w.Write([]byte(res.String()))
 	})
 
 	go http.ListenAndServe("127.0.0.1:8123", nil)
