@@ -63,6 +63,23 @@ func (c *classifierClient) getGrpcDialOptions() []grpc.DialOption {
 		opts = append(opts, grpc.WithInsecure())
 	}
 
+	//var retryPolicy = `{
+	//        "methodConfig": [{
+	//            "name": [{"service": "grpc.examples.echo.Echo1"}],
+	//            "waitForReady": true,
+	//
+	//            "retryPolicy": {
+	//                "MaxAttempts": 4,
+	//                "InitialBackoff": ".01s",
+	//                "MaxBackoff": ".01s",
+	//                "BackoffMultiplier": 1.0,
+	//                "RetryableStatusCodes": [ "UNAVAILABLE" ]
+	//            }
+	//        }]
+	//    }`
+	//
+	//opts = append(opts, grpc.WithDefaultServiceConfig(retryPolicy))
+
 	return opts
 }
 
