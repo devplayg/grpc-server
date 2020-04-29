@@ -8,11 +8,9 @@ import (
 	"github.com/devplayg/grpc-server/proto"
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/golang/protobuf/ptypes/timestamp"
-	grpc_logrus "github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus"
 	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
 	"github.com/spf13/pflag"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/keepalive"
 	"io/ioutil"
@@ -66,7 +64,7 @@ func init() {
 
 func main() {
 	// Generate sample data
-	//data := generateData()
+	data := generateData()
 
 	// Connect to receiver
 	conn, clientApi = connect()
@@ -76,15 +74,15 @@ func main() {
 	clientApi.ResetDebug(context.Background(), &empty.Empty{})
 
 	// Run
-	//wg := new(sync.WaitGroup)
+	wg := new(sync.WaitGroup)
 	started := time.Now()
-	//for i := 0; i < *agentCount; i++ {
-	//	wg.Add(1)
-	//	k := int32(i)
-	//	go send(wg, data[k])
-	//}
-	//wg.Wait()
-	//
+	for i := 0; i < *agentCount; i++ {
+		wg.Add(1)
+		k := int32(i)
+		go send(wg, data[k])
+	}
+	wg.Wait()
+
 	dur := time.Since(started)
 	//fmt.Printf("agent=%d, sent=%d, failed=%d, time=%d\n", *agentCount, success, failed, dur.Milliseconds())
 
@@ -126,25 +124,20 @@ func connect() (*grpc.ClientConn, proto.EventServiceClient) {
 	}))
 
 	// Logging-------------------------------------------------------------------------------------
-	customLoggingFunc := func(code codes.Code) log.Level {
-		return log.DebugLevel
-	}
-	logrusEntry := log.NewEntry(logger)
-	logOpts := []grpc_logrus.Option{
-		grpc_logrus.WithDurationField(func(duration time.Duration) (key string, value interface{}) {
-			return "grpc.time_ns", duration.Nanoseconds()
-		}),
-		grpc_logrus.WithLevels(customLoggingFunc),
-	}
-	grpc_logrus.ReplaceGrpcLogger(logrusEntry)
+	//customLoggingFunc := func(code codes.Code) log.Level {
+	//	return log.ErrorLevel
+	//}
+	//logrusEntry := log.NewEntry(logger)
+	//logOpts := []grpc_logrus.Option{
+	//	grpc_logrus.WithDurationField(func(duration time.Duration) (key string, value interface{}) {
+	//		return "grpc.time_ns", duration.Nanoseconds()
+	//	}),
+	//	grpc_logrus.WithLevels(customLoggingFunc),
+	//}
+	//grpc_logrus.ReplaceGrpcLogger(logrusEntry)
 	//opts = append(opts, grpc.WithUnaryInterceptor(
 	//	grpc_logrus.UnaryClientInterceptor(logrusEntry, logOpts...),
 	//))
-
-	//	grpc.WithUnaryInterceptor(
-	//		grpc_logrus.UnaryClientInterceptor(logrusEntry, logOpts...),
-	//	),
-	//)
 
 	// Backoff
 	backOffOpts := []grpc_retry.CallOption{
@@ -175,7 +168,7 @@ func connect() (*grpc.ClientConn, proto.EventServiceClient) {
 	//opts = append(opts, grpc.WithConnectParams(connParam))
 
 	chainOpts := grpc.WithChainUnaryInterceptor(
-		grpc_logrus.UnaryClientInterceptor(logrusEntry, logOpts...),
+		//grpc_logrus.UnaryClientInterceptor(logrusEntry, logOpts...),
 		grpc_retry.UnaryClientInterceptor(backOffOpts...),
 	)
 
@@ -186,7 +179,6 @@ func connect() (*grpc.ClientConn, proto.EventServiceClient) {
 	if err != nil {
 		panic(err)
 	}
-	conn.WaitForStateChange()
 
 	// Create client API for service
 	clientApi := proto.NewEventServiceClient(conn)
