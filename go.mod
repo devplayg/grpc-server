@@ -13,8 +13,7 @@ require (
 	github.com/google/uuid v1.1.1
 	github.com/grpc-ecosystem/go-grpc-middleware v1.2.0
 	github.com/jinzhu/gorm v1.9.12
-	github.com/minio/minio-go v6.0.14+incompatible
-	github.com/minio/minio-go/v6 v6.0.53 // indirect
+	github.com/minio/minio-go/v6 v6.0.55
 	github.com/sirupsen/logrus v1.5.0
 	github.com/spf13/pflag v1.0.5
 	google.golang.org/grpc v1.28.1

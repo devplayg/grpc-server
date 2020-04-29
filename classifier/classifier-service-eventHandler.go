@@ -6,7 +6,7 @@ import (
 	grpc_server "github.com/devplayg/grpc-server"
 	"github.com/devplayg/grpc-server/proto"
 	"github.com/google/uuid"
-	"github.com/minio/minio-go"
+	"github.com/minio/minio-go/v6"
 	"os"
 	"sync"
 	"time"
@@ -105,12 +105,17 @@ func (c *Classifier) saveBody(e *EventWrapper) error {
 		r.Reset(f.Data)
 
 		started := time.Now()
+		object := fmt.Sprintf("%s_%d.jpg", e.uuid.String(), i)
+		//t := time.Now().Add(c.dataRetentionTime)
 		if _, err := c.minioClient.PutObject(
 			c.config.App.Storage.Bucket,
-			fmt.Sprintf("%s_%d.jpg", e.uuid.String(), i),
+			object,
 			r,
 			size,
-			minio.PutObjectOptions{ContentType: ": image/jpeg"},
+			minio.PutObjectOptions{
+				ContentType: ": image/jpeg",
+				//RetainUntilDate:&t,
+			},
 		); err != nil {
 			log.Error(err)
 			continue

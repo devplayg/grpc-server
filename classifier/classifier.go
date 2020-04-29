@@ -6,7 +6,7 @@ import (
 	"github.com/devplayg/hippo/v2"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jinzhu/gorm"
-	"github.com/minio/minio-go"
+	"github.com/minio/minio-go/v6"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"sync"
@@ -69,6 +69,8 @@ type Classifier struct {
 	// Event channel
 	eventHeaderCh chan *EventWrapper
 	eventBodyCh   chan bool
+
+	dataRetentionTime time.Duration
 }
 
 func (c *Classifier) Start() error {

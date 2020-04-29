@@ -42,10 +42,11 @@ type Config struct {
 		}
 
 		Storage struct {
-			Address   string
-			Bucket    string
-			AccessKey string `json:"access-key"`
-			SecretKey string `json:"secret-key"`
+			Address          string
+			Bucket           string
+			AccessKey        string `json:"access-key"`
+			SecretKey        string `json:"secret-key"`
+			RetentionTimeSec int    `json:"retention-time-sec"`
 		}
 	}
 

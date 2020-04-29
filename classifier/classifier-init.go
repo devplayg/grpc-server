@@ -5,8 +5,9 @@ import (
 	grpc_server "github.com/devplayg/grpc-server"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
-	"github.com/minio/minio-go"
+	"github.com/minio/minio-go/v6"
 	"github.com/sirupsen/logrus"
+	"time"
 )
 
 func (c *Classifier) init() error {
@@ -33,6 +34,10 @@ func (c *Classifier) init() error {
 		return fmt.Errorf("failed to initialize MinIO; %w", err)
 	}
 
+	log.WithFields(logrus.Fields{
+		"address":       c.config.App.Storage.Address,
+		"retention-sec": c.dataRetentionTime.Seconds(),
+	}).Debug("object storage")
 	c.minioClient = minioClient
 
 	// Load asset
@@ -51,6 +56,11 @@ func (c *Classifier) loadConfig() error {
 	if len(config.App.Classifier.Address) < 1 {
 		config.App.Classifier.Address = DefaultAddress
 	}
+
+	if config.App.Storage.RetentionTimeSec < 1 {
+		config.App.Storage.RetentionTimeSec = 24 * 60 * 60
+	}
+	c.dataRetentionTime = time.Duration(config.App.Storage.RetentionTimeSec) * time.Second
 	c.config = config
 	return nil
 }
