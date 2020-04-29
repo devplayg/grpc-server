@@ -8,9 +8,11 @@ import (
 	"github.com/devplayg/grpc-server/proto"
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/golang/protobuf/ptypes/timestamp"
-	"github.com/sirupsen/logrus"
+	grpc_logrus "github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus"
+	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
 	"github.com/spf13/pflag"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/keepalive"
 	"io/ioutil"
@@ -20,6 +22,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -62,7 +66,7 @@ func init() {
 
 func main() {
 	// Generate sample data
-	data := generateData()
+	//data := generateData()
 
 	// Connect to receiver
 	conn, clientApi = connect()
@@ -72,17 +76,17 @@ func main() {
 	clientApi.ResetDebug(context.Background(), &empty.Empty{})
 
 	// Run
-	wg := new(sync.WaitGroup)
+	//wg := new(sync.WaitGroup)
 	started := time.Now()
-	for i := 0; i < *agentCount; i++ {
-		wg.Add(1)
-		k := int32(i)
-		go send(wg, data[k])
-	}
-	wg.Wait()
-
+	//for i := 0; i < *agentCount; i++ {
+	//	wg.Add(1)
+	//	k := int32(i)
+	//	go send(wg, data[k])
+	//}
+	//wg.Wait()
+	//
 	dur := time.Since(started)
-	fmt.Printf("agent=%d, sent=%d, failed=%d, time=%d\n", *agentCount, success, failed, dur.Milliseconds())
+	//fmt.Printf("agent=%d, sent=%d, failed=%d, time=%d\n", *agentCount, success, failed, dur.Milliseconds())
 
 	startHttpServer(dur)
 	fmt.Scanln()
@@ -102,6 +106,8 @@ func generateData() map[int32][]*proto.Event {
 
 func connect() (*grpc.ClientConn, proto.EventServiceClient) {
 	opts := make([]grpc.DialOption, 0)
+
+	// Keepalive
 	opts = append(opts, grpc.WithKeepaliveParams(keepalive.ClientParameters{}))
 	if !*insecure {
 		config := &tls.Config{
@@ -111,31 +117,76 @@ func connect() (*grpc.ClientConn, proto.EventServiceClient) {
 	} else {
 		opts = append(opts, grpc.WithInsecure())
 	}
+
+	// Stats handler
+	logger := log.New()
 	opts = append(opts, grpc.WithStatsHandler(&grpc_server.ConnStatsHandler{
 		To:  "receiver",
-		Log: logrus.New(),
+		Log: logger,
 	}))
 
-	//var retryPolicy = `{
-	//        "methodConfig": [{
-	//            "name": [{"service": "proto.EventService"}],
-	//            "waitForReady": true,
-	//            "retryPolicy": {
-	//                "MaxAttempts": 4,
-	//                "InitialBackoff": ".01s",
-	//                "MaxBackoff": ".01s",
-	//                "BackoffMultiplier": 1.0,
-	//                "RetryableStatusCodes": [ "UNAVAILABLE" ]
-	//            }
-	//        }]
-	//    }`
-	//opts = append(opts, grpc.WithDefaultServiceConfig(retryPolicy))
+	// Logging-------------------------------------------------------------------------------------
+	customLoggingFunc := func(code codes.Code) log.Level {
+		return log.DebugLevel
+	}
+	logrusEntry := log.NewEntry(logger)
+	logOpts := []grpc_logrus.Option{
+		grpc_logrus.WithDurationField(func(duration time.Duration) (key string, value interface{}) {
+			return "grpc.time_ns", duration.Nanoseconds()
+		}),
+		grpc_logrus.WithLevels(customLoggingFunc),
+	}
+	grpc_logrus.ReplaceGrpcLogger(logrusEntry)
+	//opts = append(opts, grpc.WithUnaryInterceptor(
+	//	grpc_logrus.UnaryClientInterceptor(logrusEntry, logOpts...),
+	//))
+
+	//	grpc.WithUnaryInterceptor(
+	//		grpc_logrus.UnaryClientInterceptor(logrusEntry, logOpts...),
+	//	),
+	//)
+
+	// Backoff
+	backOffOpts := []grpc_retry.CallOption{
+		//grpc_retry.WithBackoff(grpc_retry.BackoffLinearWithJitter(1000*time.Millisecond, 0.2)),
+		//grpc_retry.WithMax(2),
+		//grpc_retry.WithBackoff(grpc_retry.BackoffLinear(10000 * time.Millisecond)),
+		//grpc_retry.WithCodes(codes.Aborted, codes.Unavailable),
+		//grpc_retry.Disable(),
+	}
+	//opts = append(opts, grpc.WithUnaryInterceptor(
+	//	grpc_retry.UnaryClientInterceptor(cOpts...),
+	//))
+
+	//grpc.Dial("myservice.example.com",
+	//	grpc.WithStreamInterceptor(grpc_retry.StreamClientInterceptor(opts...)),
+	//	grpc.WithUnaryInterceptor(grpc_retry.UnaryClientInterceptor(opts...)),
+	//)
+
+	//connParam := grpc.ConnectParams{
+	//	Backoff: backoff.Config{
+	//		BaseDelay:  1.0 * time.Second,
+	//		Multiplier: 1.6,
+	//		Jitter:     0.2,
+	//		MaxDelay:   5.0 * time.Second,
+	//	},
+	//	MinConnectTimeout: 1 * time.Second,
+	//}
+	//opts = append(opts, grpc.WithConnectParams(connParam))
+
+	chainOpts := grpc.WithChainUnaryInterceptor(
+		grpc_logrus.UnaryClientInterceptor(logrusEntry, logOpts...),
+		grpc_retry.UnaryClientInterceptor(backOffOpts...),
+	)
+
+	opts = append(opts, chainOpts)
 
 	// Create connection
 	conn, err := grpc.Dial(*addr, opts...)
 	if err != nil {
 		panic(err)
 	}
+	conn.WaitForStateChange()
 
 	// Create client API for service
 	clientApi := proto.NewEventServiceClient(conn)
@@ -171,7 +222,11 @@ func startHttpServer(dur time.Duration) {
 	})
 
 	http.HandleFunc("/do", func(w http.ResponseWriter, r *http.Request) {
-		ctx, _ := context.WithTimeout(context.Background(), 3*time.Second)
+		log.Info("got /do request")
+		defer func() {
+			log.Info("done /do request")
+		}()
+		ctx := context.Background()
 		res, err := clientApi.Send(ctx, generateEvent("dddd"))
 		if err != nil {
 			w.Write([]byte(err.Error()))

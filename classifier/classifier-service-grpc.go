@@ -57,7 +57,7 @@ func (c *Classifier) _startGrpcServer() error {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	// Run gRPC server
-	ch := make(chan bool)
+	ch := make(chan struct{})
 	go func() {
 		defer close(ch)
 		if err := c.gRpcServer.Serve(ln); err != nil {

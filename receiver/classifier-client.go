@@ -6,8 +6,10 @@ import (
 	"github.com/devplayg/grpc-server/proto"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/backoff"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/keepalive"
+	"time"
 )
 
 type classifierClient struct {
@@ -63,22 +65,17 @@ func (c *classifierClient) getGrpcDialOptions() []grpc.DialOption {
 		opts = append(opts, grpc.WithInsecure())
 	}
 
-	//var retryPolicy = `{
-	//        "methodConfig": [{
-	//            "name": [{"service": "grpc.examples.echo.Echo1"}],
-	//            "waitForReady": true,
-	//
-	//            "retryPolicy": {
-	//                "MaxAttempts": 4,
-	//                "InitialBackoff": ".01s",
-	//                "MaxBackoff": ".01s",
-	//                "BackoffMultiplier": 1.0,
-	//                "RetryableStatusCodes": [ "UNAVAILABLE" ]
-	//            }
-	//        }]
-	//    }`
-	//
-	//opts = append(opts, grpc.WithDefaultServiceConfig(retryPolicy))
+	// Backoff
+	connParam := grpc.ConnectParams{
+		Backoff: backoff.Config{
+			BaseDelay:  1.0 * time.Second,
+			Multiplier: 1.6,
+			Jitter:     0.2,
+			MaxDelay:   5.0 * time.Second,
+		},
+		MinConnectTimeout: 1 * time.Second,
+	}
+	opts = append(opts, grpc.WithConnectParams(connParam))
 
 	return opts
 }

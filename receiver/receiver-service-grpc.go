@@ -59,7 +59,7 @@ func (r *Receiver) _startGrpcServer(storageCh chan<- *proto.Event) error {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	// Run gRPC server
-	ch := make(chan bool)
+	ch := make(chan struct{})
 	go func() {
 		defer close(ch)
 		if err := r.gRpcServer.Serve(ln); err != nil {

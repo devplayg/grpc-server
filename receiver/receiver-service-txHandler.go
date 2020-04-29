@@ -30,7 +30,7 @@ func (r *Receiver) startTxHandler(wg *sync.WaitGroup, serviceName string) {
 }
 
 func (r *Receiver) _startTxHandler() error {
-	ch := make(chan bool)
+	ch := make(chan struct{})
 	go func() {
 		defer close(ch)
 
