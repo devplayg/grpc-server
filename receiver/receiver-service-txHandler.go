@@ -2,7 +2,7 @@ package receiver
 
 import (
 	"fmt"
-	"github.com/devplayg/golibs/converter"
+	"github.com/devplayg/goutils"
 	"github.com/devplayg/grpc-server/proto"
 	"github.com/sirupsen/logrus"
 	"io/ioutil"
@@ -76,7 +76,7 @@ func (r *Receiver) _startTxHandler() error {
 }
 
 func saveEvents(events []*proto.Event, dir string) error {
-	encoded, err := converter.EncodeToBytes(events)
+	encoded, err := goutils.GobEncode(events)
 	if err != nil {
 		return fmt.Errorf("failed to encode bytes; %w", err)
 	}
